@@ -1,0 +1,30 @@
+{
+    "name": "common-react-toolkit",
+    "version": "0.0.0",
+    "description": "Toolkit of common React things to make developer's life a bit easier.",
+    "main": "index.js",
+    "scripts": {
+        "build": "tsc",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "react",
+        "reactjs",
+        "react-native",
+        "state",
+        "state-management"
+    ],
+    "author": "Yogesh",
+    "license": "ISC",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/yogesh-aggarwal/common-react-toolkit"
+    },
+    "type": "module",
+    "devDependencies": {
+        "typescript": "^4.4.4"
+    },
+    "files": [
+        "lib/**/*"
+    ]
+}
