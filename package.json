@@ -3,7 +3,7 @@
     "version": "0.0.6",
     "description": "Toolkit of common React things to make developer's life a bit easier.",
     "scripts": {
-        "build": "tsc",
+        "build": "npx tsc",
         "test": "echo \"Error: no test specified\""
     },
     "keywords": [
