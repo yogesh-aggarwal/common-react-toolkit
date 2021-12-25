@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
-import { BehaviorSubject } from "rxjs";
+import { Store, StoreCallbacks } from "./store";
 
-export function makeStore<T>(intialValue: T): [BehaviorSubject<T>, () => [T]] {
-	const store = new BehaviorSubject(intialValue);
+export function makeStore<T>(
+	intialValue: T,
+	callbacks: StoreCallbacks<T>
+): [Store<T>, () => [T]] {
+	const store = new Store(intialValue, callbacks);
 	const hook = (): [T] => {
-		const [state, setState] = useState(store.value);
+		const [state, setState] = useState(store.currentValue());
 		useEffect(() => {
 			const subscription = store.subscribe((state: T) => {
 				setState(state);

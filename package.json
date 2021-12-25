@@ -1,9 +1,10 @@
 {
     "name": "common-react-toolkit",
-    "version": "0.0.6",
+    "version": "0.0.7",
     "description": "Toolkit of common React things to make developer's life a bit easier.",
     "scripts": {
         "build": "npx tsc",
+        "publish": "npm run build && npm publish",
         "test": "echo \"Error: no test specified\""
     },
     "keywords": [
