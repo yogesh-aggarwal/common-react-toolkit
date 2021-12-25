@@ -32,6 +32,10 @@ export class Store<T> {
 		}
 	}
 
+	merge(newValue: Partial<T>): void {
+		this.set({ ...this._store.value, ...newValue });
+	}
+
 	subscribe(callback: (state: T) => void): Subscription {
 		return this._store.subscribe(callback);
 	}
