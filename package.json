@@ -1,11 +1,10 @@
 {
     "name": "common-react-toolkit",
-    "version": "0.0.0",
+    "version": "0.0.6",
     "description": "Toolkit of common React things to make developer's life a bit easier.",
-    "main": "index.js",
     "scripts": {
         "build": "tsc",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "echo \"Error: no test specified\""
     },
     "keywords": [
         "react",
@@ -14,17 +13,26 @@
         "state",
         "state-management"
     ],
-    "author": "Yogesh",
+    "author": "Yogesh Aggarwal",
     "license": "ISC",
     "repository": {
         "type": "git",
         "url": "https://github.com/yogesh-aggarwal/common-react-toolkit"
     },
     "type": "module",
+    "peerDependencies": {
+        "react": "^17.0.1",
+        "rxjs": "^7.4.0"
+    },
     "devDependencies": {
         "typescript": "^4.4.4"
     },
     "files": [
         "lib/**/*"
-    ]
+    ],
+    "types": "lib/index.d.ts",
+    "main": "lib/index.js",
+    "dependencies": {
+        "@types/react": "^17.0.34"
+    }
 }
