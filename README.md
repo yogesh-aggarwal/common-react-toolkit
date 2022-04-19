@@ -56,7 +56,7 @@ function SpookyComponent() {
 
 You might be wondering, `well there's any set function`. You're right! But there's no need for the same. Your component will get `re-rendered` as soon as the store's state changes.
 
-# Modifying store
+### Modifying store
 
 Remember the `usernameStore`, provided by the `makeStore`? Yes, that's what enables you to handle the current state of the store or any component attached to the store.
 
