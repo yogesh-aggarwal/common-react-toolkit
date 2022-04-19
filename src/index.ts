@@ -26,7 +26,8 @@ export class Store<T> {
 			this._callbacks.beforeUpdate(this._store.value);
 		}
 		// Update value
-		this._store.next({ ...newValue });
+		if (typeof newValue == "object") this._store.next({ ...newValue });
+		else this._store.next(newValue);
 		// After update
 		if (this._callbacks.afterUpdate) {
 			this._callbacks.afterUpdate(this._store.value);
