@@ -79,3 +79,14 @@ export function onUnmount(callback: () => void) {
 		return callback
 	}, [])
 }
+
+export function onLifecycle(events: {
+	onMount: () => void
+	onUnmount: () => void
+	onUpdate?: { callback: () => void; dependencies: DependencyList }
+}): void {
+	onMount(events.onMount)
+	onUnmount(events.onUnmount)
+	if (events.onUpdate)
+		onUpdate(events.onUpdate.callback, events.onUpdate.dependencies)
+}
