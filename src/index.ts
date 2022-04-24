@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { DependencyList, useEffect, useState } from "react"
 import { BehaviorSubject, Subscription } from "rxjs"
 
 export type StoreCallbacks<T> = {
@@ -15,42 +15,17 @@ export class Store<T> {
 		this._callbacks = callbacks
 	}
 
-	private compareObjects(o1: any, o2: any): boolean {
-		for (var p in o1) {
-			if (o1.hasOwnProperty(p)) {
-				if (o1[p] !== o2[p]) {
-					return false
-				}
-			}
-		}
-		for (var p in o2) {
-			if (o2.hasOwnProperty(p)) {
-				if (o1[p] !== o2[p]) {
-					return false
-				}
-			}
-		}
-		return true
-	}
-
 	currentValue(): T {
 		return this._store.value
 	}
 
-	set(newValue: T, doForce: boolean = false): void {
+	set(newValue: T): void {
 		// Before update
 		if (this._callbacks.beforeUpdate) {
 			this._callbacks.beforeUpdate(this._store.value)
 		}
 		// Update value
-		let areTheySame: boolean = true
-		if (!doForce)
-			if (newValue instanceof Object) {
-				areTheySame = this.compareObjects(this._store.value, newValue)
-			} else {
-				areTheySame = this._store.value === newValue
-			}
-		if (!areTheySame) this._store.next((newValue as any).valueOf())
+		this._store.next((newValue as any).valueOf())
 		// After update
 		if (this._callbacks.afterUpdate) {
 			this._callbacks.afterUpdate(this._store.value)
@@ -89,4 +64,18 @@ export function makeStore<T>(
 		return [state]
 	}
 	return [store, hook]
+}
+
+export function onMount(callback: () => void) {
+	useEffect(callback, [])
+}
+
+export function onUpdate(callback: () => void, dependencies: DependencyList) {
+	useEffect(callback, dependencies)
+}
+
+export function onUnmount(callback: () => void) {
+	useEffect(() => {
+		return callback
+	}, [])
 }
