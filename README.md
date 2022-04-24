@@ -27,9 +27,9 @@ Considering the fact that many developers hate the concept of the global state, 
 ### Creating store
 
 ```ts
-import { makeStore } from "common-react-toolkit";
+import { makeStore } from "common-react-toolkit"
 
-const [usernameStore, useUsername] = makeStore<string>("Titter");
+const [usernameStore, useUsername] = makeStore<string>("Titter")
 ```
 
 You might understand the code by looking at it. But if you don't, here we go:
@@ -46,15 +46,15 @@ Consider the following component:
 
 ```ts
 function SpookyComponent() {
-	const [username] = useUsername();
+	const [username] = useUsername()
 
-	return <div>{username}</div>;
+	return <div>{username}</div>
 }
 ```
 
 > And, that's how you access the value in the store.
 
-You might be wondering, `well there's any set function`. You're right! But there's no need for the same. Your component will get `re-rendered` as soon as the store's state changes.
+You might be wondering, `well there's no set function`. You're right! Because there's no need for the same. Your component will get `re-rendered` as soon as the store's state changes.
 
 ### Modifying store
 
@@ -63,12 +63,12 @@ Remember the `usernameStore`, provided by the `makeStore`? Yes, that's what enab
 Consider the following example:
 
 ```ts
-import { makeStore } from "common-react-toolkit";
+import { makeStore } from "common-react-toolkit"
 
-const [usernameStore, useUsername] = makeStore<string>("Titter");
+const [usernameStore, useUsername] = makeStore<string>("Titter")
 
 function updateUsername(name: string) {
-	usernameStore.set(name);
+	usernameStore.set(name)
 }
 ```
 
