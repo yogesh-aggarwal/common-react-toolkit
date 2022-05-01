@@ -1,10 +1,9 @@
 {
     "name": "common-react-toolkit",
-    "version": "3.0.1",
+    "version": "3.0.2",
     "description": "Toolkit of common React things to make developer's life a bit easier.",
     "scripts": {
         "build": "rm -rf lib && npx tsc",
-        "publish": "cp package.json lib/package.json && cd lib && npm publish",
         "test": "echo \"Error: no test specified\""
     },
     "keywords": [
@@ -29,8 +28,9 @@
         "typescript": "^4.6.3"
     },
     "files": [
-        "**/*"
+        "lib/**/*"
     ],
+    "types": "lib/*.d.ts",
     "dependencies": {
         "@types/react": "^18.0.0"
     }
