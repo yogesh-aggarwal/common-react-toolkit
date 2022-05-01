@@ -46,7 +46,7 @@ export class Store<T> {
 	}
 }
 
-export default function makeStore<T>(
+export function makeStore<T>(
 	intialValue: T,
 	callbacks?: StoreCallbacks<T>
 ): [Store<T>, () => T] {

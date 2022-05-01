@@ -1,6 +1,6 @@
 {
     "name": "common-react-toolkit",
-    "version": "3.0.2",
+    "version": "3.0.3",
     "description": "Toolkit of common React things to make developer's life a bit easier.",
     "scripts": {
         "build": "rm -rf lib && npx tsc",
@@ -30,7 +30,8 @@
     "files": [
         "lib/**/*"
     ],
-    "types": "lib/*.d.ts",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
     "dependencies": {
         "@types/react": "^18.0.0"
     }
