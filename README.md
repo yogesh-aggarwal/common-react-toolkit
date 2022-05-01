@@ -46,7 +46,7 @@ Consider the following component:
 
 ```ts
 function SpookyComponent() {
-	const [username] = useUsername()
+	const username = useUsername()
 
 	return <div>{username}</div>
 }
