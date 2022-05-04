@@ -68,24 +68,39 @@ export function makeStore<T>(
 	return [store, hook]
 }
 
-export function onMount(callback: () => void) {
-	useEffect(callback, [])
-}
-
-export function onUpdate(callback: () => void, dependencies: DependencyList) {
-	useEffect(callback, dependencies)
-}
-
-export function onUnmount(callback: () => void) {
+export function onMount(callback: () => Promise<void>) {
 	useEffect(() => {
-		return callback
+		setTimeout(async () => {
+			await callback()
+		}, 0)
+	}, [])
+}
+
+export function onUpdate(
+	callback: () => Promise<void>,
+	dependencies: DependencyList
+) {
+	useEffect(() => {
+		setTimeout(async () => {
+			await callback()
+		}, 0)
+	}, dependencies)
+}
+
+export function onUnmount(callback: () => Promise<void>) {
+	useEffect(() => {
+		return () => {
+			setTimeout(async () => {
+				await callback()
+			}, 0)
+		}
 	}, [])
 }
 
 export function onLifecycle(events: {
-	onMount: () => void
-	onUnmount: () => void
-	onUpdate?: { callback: () => void; dependencies: DependencyList }
+	onMount: () => Promise<void>
+	onUnmount: () => Promise<void>
+	onUpdate?: { callback: () => Promise<void>; dependencies: DependencyList }
 }): void {
 	onMount(events.onMount)
 	onUnmount(events.onUnmount)
