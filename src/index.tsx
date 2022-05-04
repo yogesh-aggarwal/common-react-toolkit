@@ -3,8 +3,8 @@ import { BehaviorSubject, Subscription } from "rxjs"
 import { DependencyList, useEffect, useState } from "react"
 
 export type StoreCallbacks<T> = {
-	beforeUpdate?: (state: T) => void
-	afterUpdate?: (state: T) => void
+	beforeUpdate?: (state: T) => void | Promise<void>
+	afterUpdate?: (state: T) => void | Promise<void>
 }
 
 export class Store<T> {
@@ -20,17 +20,17 @@ export class Store<T> {
 		return this._store.value
 	}
 
-	set(newValue: T): void {
+	async set(newValue: T): Promise<void> {
 		// Before update
 		if (this._callbacks.beforeUpdate) {
-			this._callbacks.beforeUpdate(this._store.value)
+			await this._callbacks.beforeUpdate(this._store.value)
 		}
 		// Update value
 		if (!newValue) this._store.next(newValue)
 		else this._store.next((newValue as any).valueOf())
 		// After update
 		if (this._callbacks.afterUpdate) {
-			this._callbacks.afterUpdate(this._store.value)
+			await this._callbacks.afterUpdate(this._store.value)
 		}
 	}
 
@@ -68,7 +68,7 @@ export function makeStore<T>(
 	return [store, hook]
 }
 
-export function onMount(callback: () => Promise<void>) {
+export function onMount(callback: () => void | Promise<void>) {
 	useEffect(() => {
 		setTimeout(async () => {
 			await callback()
@@ -77,7 +77,7 @@ export function onMount(callback: () => Promise<void>) {
 }
 
 export function onUpdate(
-	callback: () => Promise<void>,
+	callback: () => void | Promise<void>,
 	dependencies: DependencyList
 ) {
 	useEffect(() => {
@@ -87,7 +87,7 @@ export function onUpdate(
 	}, dependencies)
 }
 
-export function onUnmount(callback: () => Promise<void>) {
+export function onUnmount(callback: () => void | Promise<void>) {
 	useEffect(() => {
 		return () => {
 			setTimeout(async () => {
