@@ -110,7 +110,7 @@ export function onLifecycle(events: {
 
 export function If(props: {
 	value: any
-	children: React.ReactNode
+	children: React.ReactNode | React.ReactNode[]
 }): React.ReactElement {
-	return <>{!!props.value && props.children}</>
+	return props.value ? <>{props.children}</> : <></>
 }
