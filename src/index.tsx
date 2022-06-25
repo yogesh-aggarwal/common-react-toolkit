@@ -47,27 +47,6 @@ export class Store<T> {
 	}
 }
 
-export function makeStore<T>(
-	intialValue: T,
-	callbacks?: StoreCallbacks<T>
-): [Store<T>, () => T] {
-	const store = new Store<T>(intialValue, callbacks ? callbacks : {})
-
-	const hook = (): T => {
-		const [state, setState] = useState(store.currentValue())
-		useEffect(() => {
-			const subscription = store.subscribe((state: T) => {
-				setState(state)
-			})
-			return () => {
-				subscription.unsubscribe()
-			}
-		})
-		return state
-	}
-	return [store, hook]
-}
-
 export function onMount(callback: () => void | Promise<void>) {
 	useEffect(() => {
 		setTimeout(async () => {
@@ -106,6 +85,33 @@ export function onLifecycle(events: {
 	onUnmount(events.onUnmount)
 	if (events.onUpdate)
 		onUpdate(events.onUpdate.callback, events.onUpdate.dependencies)
+}
+
+export function makeStore<T>(
+	intialValue: T,
+	callbacks?: StoreCallbacks<T>,
+	options?: {
+		local?: boolean
+	}
+): [Store<T>, () => T] {
+	const store = new Store<T>(intialValue, callbacks ? callbacks : {})
+
+	const hook = (): T => {
+		const [state, setState] = useState(store.currentValue())
+		useEffect(() => {
+			const subscription = store.subscribe((state: T) => {
+				setState(state)
+			})
+			return () => {
+				subscription.unsubscribe()
+			}
+		})
+		return state
+	}
+
+	if (options?.local) onUnmount(() => store.set(intialValue))
+
+	return [store, hook]
 }
 
 export function If(props: {

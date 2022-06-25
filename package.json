@@ -1,6 +1,6 @@
 {
     "name": "common-react-toolkit",
-    "version": "3.3.2",
+    "version": "4.0.0",
     "description": "Toolkit of common React things to make developer's life a bit easier.",
     "scripts": {
         "build": "rm -rf lib && npx tsc",
