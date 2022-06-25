@@ -4,7 +4,8 @@
     "description": "Toolkit of common React things to make developer's life a bit easier.",
     "scripts": {
         "build": "rm -rf lib && npx tsc",
-        "test": "echo \"Error: no test specified\""
+        "test": "echo \"Error: no test specified\"",
+        "gh-publish": "git checkout publish && git merge main && git push origin publish && git checkout main"
     },
     "keywords": [
         "react",
