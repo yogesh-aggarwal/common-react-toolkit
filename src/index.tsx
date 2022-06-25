@@ -98,6 +98,8 @@ export function makeStore<T>(
 
 	const hook = (): T => {
 		const [state, setState] = useState(store.currentValue())
+		if (options?.local) onUnmount(() => store.set(intialValue))
+
 		useEffect(() => {
 			const subscription = store.subscribe((state: T) => {
 				setState(state)
@@ -108,8 +110,6 @@ export function makeStore<T>(
 		})
 		return state
 	}
-
-	if (options?.local) onUnmount(() => store.set(intialValue))
 
 	return [store, hook]
 }
