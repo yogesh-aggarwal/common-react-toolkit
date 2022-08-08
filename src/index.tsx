@@ -3,8 +3,8 @@ import { BehaviorSubject, Subscription } from "rxjs"
 import { DependencyList, useEffect, useState } from "react"
 
 export type StoreCallbacks<T> = {
-	beforeUpdate?: (state: T) => void | Promise<void>
-	afterUpdate?: (state: T) => void | Promise<void>
+	beforeUpdate?: (newState: T, prevState: T) => void | Promise<void>
+	afterUpdate?: (newState: T, prevState: T) => void | Promise<void>
 }
 
 export class Store<T> {
@@ -31,7 +31,7 @@ export class Store<T> {
 	async set(newValue: T): Promise<void> {
 		// Before update
 		if (this._callbacks.beforeUpdate) {
-			await this._callbacks.beforeUpdate(this._store.value)
+			await this._callbacks.beforeUpdate(newValue, this._store.value)
 		}
 		// Update value
 		if (!newValue) {
@@ -44,7 +44,7 @@ export class Store<T> {
 		}
 		// After update
 		if (this._callbacks.afterUpdate) {
-			await this._callbacks.afterUpdate(this._store.value)
+			await this._callbacks.afterUpdate(newValue, this._store.value)
 		}
 	}
 
