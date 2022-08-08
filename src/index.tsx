@@ -10,10 +10,18 @@ export type StoreCallbacks<T> = {
 export class Store<T> {
 	private _store: BehaviorSubject<T>
 	private _callbacks: StoreCallbacks<T> = {}
+	private _storeID?: string
 
-	constructor(initialValue: T, callbacks: StoreCallbacks<T>) {
-		this._store = new BehaviorSubject<T>(initialValue)
+	constructor(initialValue: T, callbacks: StoreCallbacks<T>, storeID?: string) {
+		const localValue = localStorage.getItem(storeID ?? "")
+		this._store = new BehaviorSubject<T>(
+			localValue ? JSON.parse(localValue) : initialValue
+		)
+		if (storeID && localValue) {
+			localStorage.setItem(storeID, JSON.stringify(initialValue))
+		}
 		this._callbacks = callbacks
+		this._storeID = storeID
 	}
 
 	currentValue(): T {
@@ -26,8 +34,14 @@ export class Store<T> {
 			await this._callbacks.beforeUpdate(this._store.value)
 		}
 		// Update value
-		if (!newValue) this._store.next(newValue)
-		else this._store.next((newValue as any).valueOf())
+		if (!newValue) {
+			this._store.next(newValue)
+		} else {
+			this._store.next((newValue as any).valueOf())
+		}
+		if (this._storeID) {
+			localStorage.setItem(this._storeID, JSON.stringify(this._store.value))
+		}
 		// After update
 		if (this._callbacks.afterUpdate) {
 			await this._callbacks.afterUpdate(this._store.value)
@@ -92,9 +106,14 @@ export function makeStore<T>(
 	callbacks?: StoreCallbacks<T>,
 	options?: {
 		local?: boolean
+		storeID?: string
 	}
 ): [Store<T>, () => T] {
-	const store = new Store<T>(intialValue, callbacks ? callbacks : {})
+	const store = new Store<T>(
+		intialValue,
+		callbacks ? callbacks : {},
+		options?.storeID
+	)
 
 	const hook = (): T => {
 		const [state, setState] = useState(store.currentValue())
