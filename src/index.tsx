@@ -17,8 +17,8 @@ export class Store<T> {
 		this._store = new BehaviorSubject<T>(
 			localValue ? JSON.parse(localValue) : initialValue
 		)
-		if (storeID && localValue && initialValue) {
-			localStorage.setItem(storeID, JSON.stringify(initialValue))
+		if (storeID && !localValue) {
+			localStorage.setItem(storeID, JSON.stringify(this._store.value))
 		}
 		this._callbacks = callbacks
 		this._storeID = storeID
