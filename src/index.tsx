@@ -7,6 +7,36 @@ export type StoreCallbacks<T> = {
 	afterUpdate?: (newState: T, prevState: T) => void | Promise<void>
 }
 
+namespace Utilities {
+	function CompareArrays(a: any[], b: any[]): boolean {
+		if (a.length !== b.length) return false
+		for (let i = 0; i < a.length; i++) {
+			if (a[i] !== b[i]) return false
+		}
+		return true
+	}
+
+	function CompareObjects(a: Object, b: Object): boolean {
+		const aKeys = Object.keys(a)
+		const bKeys = Object.keys(b)
+		if (CompareArrays(aKeys, bKeys)) return false
+
+		for (const key of aKeys) {
+			if (!AreEqual((a as any)[key], (b as any)[key])) return false
+		}
+
+		return true
+	}
+
+	export function AreEqual(a: any, b: any): boolean {
+		if (typeof a !== typeof b) return false
+
+		if (Array.isArray(a) && Array.isArray(b)) return CompareArrays(a, b)
+		if (typeof a === "object") return CompareObjects(a, b)
+		return JSON.stringify(a) === JSON.stringify(b)
+	}
+}
+
 export class Store<T> {
 	private _store: BehaviorSubject<T>
 	private _callbacks: StoreCallbacks<T> = {}
@@ -108,20 +138,23 @@ export function makeStore<T>(
 		local?: boolean
 		storeID?: string
 	}
-): [Store<T>, () => T] {
+): [Store<T>, (filter?: (state: T) => any) => T] {
 	const store = new Store<T>(
 		intialValue,
 		callbacks ? callbacks : {},
 		options?.storeID
 	)
 
-	const hook = (): T => {
+	const hook = (filter?: (state: T) => any): T => {
 		const [state, setState] = useState(store.currentValue())
 		if (options?.local) onUnmount(() => store.set(intialValue))
 
 		useEffect(() => {
-			const subscription = store.subscribe((state: T) => {
-				setState(state)
+			const subscription = store.subscribe((newState: T) => {
+				// If filter is defined, only update state if two states are not equal
+				if (filter && Utilities.AreEqual(filter(state), filter(newState)))
+					return
+				setState(newState)
 			})
 			return () => {
 				subscription.unsubscribe()
