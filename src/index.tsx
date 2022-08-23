@@ -8,19 +8,18 @@ export type StoreCallbacks<T> = {
 }
 
 namespace Utilities {
-	function CompareArrays(a: any[], b: any[]): boolean {
+	function AreArraysEqual(a: any[], b: any[]): boolean {
 		if (a.length !== b.length) return false
 		for (let i = 0; i < a.length; i++) {
-			if (a[i] !== b[i]) return false
+			if (!AreEqual(a[i], b[i])) return false
 		}
 		return true
 	}
 
-	function CompareObjects(a: Object, b: Object): boolean {
+	function AreObjectsEqual(a: Object, b: Object): boolean {
 		const aKeys = Object.keys(a)
 		const bKeys = Object.keys(b)
-		if (CompareArrays(aKeys, bKeys)) return false
-
+		if (!AreArraysEqual(aKeys, bKeys)) return false
 		for (const key of aKeys) {
 			if (!AreEqual((a as any)[key], (b as any)[key])) return false
 		}
@@ -30,12 +29,10 @@ namespace Utilities {
 
 	export function AreEqual(a: any, b: any): boolean {
 		if (typeof a !== typeof b) return false
-		if (a === undefined && b === undefined) return true
-		if (a === null && b === null) return true
 		if (a === b) return true
 
-		if (Array.isArray(a) && Array.isArray(b)) return CompareArrays(a, b)
-		if (typeof a === "object") return CompareObjects(a, b)
+		if (Array.isArray(a) && Array.isArray(b)) return AreArraysEqual(a, b)
+		if (typeof a === "object") return AreObjectsEqual(a, b)
 		return JSON.stringify(a) === JSON.stringify(b)
 	}
 }
@@ -152,18 +149,21 @@ export function makeStore<T>(
 
 	// prettier-ignore
 	const hook = <RT=T,>(
-		mapper: (state: T) => RT = (state: T) => state as unknown as RT
+		mapper?: (state: T) => RT
 	): RT => {
-		const [state, setState] = useState<RT>(mapper(store.currentValue()))
+		const initialValue = mapper ? mapper(store.currentValue()) : store.currentValue()
+		const [state, setState] = useState<RT>(initialValue as any)
 		if (options?.local) onUnmount(() => store.set(intialValue))
 
 		useEffect(() => {
 			const subscription = store.subscribe((newState: T) => {
 				// If filter is defined, only update state if two states are not equal
-				if (Utilities.AreEqual(state, mapper(newState))) return
-				if (mapper) {
-					setState(mapper(newState))
-				}
+				newState = mapper
+					? mapper(store.currentValue())
+					: (store.currentValue() as any)
+
+				if (Utilities.AreEqual(state, newState)) return
+				setState(newState as any)
 			})
 			return () => {
 				subscription.unsubscribe()
