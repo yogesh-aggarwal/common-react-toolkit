@@ -131,6 +131,8 @@ export function onLifecycle(events: {
 		onUpdate(events.onUpdate.callback, events.onUpdate.dependencies)
 }
 
+type StoreHook<T> = <RT = T>(mapper?: (state: T) => RT) => RT
+
 export function makeStore<T>(
 	intialValue: T,
 	callbacks?: StoreCallbacks<T>,
@@ -138,23 +140,31 @@ export function makeStore<T>(
 		local?: boolean
 		storeID?: string
 	}
-): [Store<T>, (filter?: (state: T) => any) => T] {
+): [Store<T>, StoreHook<T>] {
 	const store = new Store<T>(
 		intialValue,
 		callbacks ? callbacks : {},
 		options?.storeID
 	)
 
-	const hook = (filter?: (state: T) => any): T => {
-		const [state, setState] = useState(store.currentValue())
+	// prettier-ignore
+	const hook = <RT=T>(mapper?: (state: T) => RT): RT => {
+		const [state, setState] = useState<RT>(
+			mapper
+				? mapper(store.currentValue())
+				: (store.currentValue() as unknown as RT)
+		)
 		if (options?.local) onUnmount(() => store.set(intialValue))
 
 		useEffect(() => {
 			const subscription = store.subscribe((newState: T) => {
 				// If filter is defined, only update state if two states are not equal
-				if (filter && Utilities.AreEqual(filter(state), filter(newState)))
+				if (
+					mapper &&
+					Utilities.AreEqual(state, mapper(newState))
+				)
 					return
-				setState(newState)
+				setState(newState as unknown as RT)
 			})
 			return () => {
 				subscription.unsubscribe()
