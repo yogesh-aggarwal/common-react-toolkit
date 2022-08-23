@@ -30,6 +30,9 @@ namespace Utilities {
 
 	export function AreEqual(a: any, b: any): boolean {
 		if (typeof a !== typeof b) return false
+		if (a === undefined && b === undefined) return true
+		if (a === null && b === null) return true
+		if (a === b) return true
 
 		if (Array.isArray(a) && Array.isArray(b)) return CompareArrays(a, b)
 		if (typeof a === "object") return CompareObjects(a, b)
