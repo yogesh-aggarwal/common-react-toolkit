@@ -1,6 +1,6 @@
 import * as React from "react"
-import { BehaviorSubject, Subscription } from "rxjs"
 import { DependencyList, useEffect, useState } from "react"
+import { BehaviorSubject, Subscription } from "rxjs"
 
 export type StoreCallbacks<T> = {
 	beforeUpdate?: (newState: T, prevState: T) => void | Promise<void>
@@ -151,23 +151,19 @@ export function makeStore<T>(
 	)
 
 	// prettier-ignore
-	const hook = <RT=T>(mapper?: (state: T) => RT): RT => {
-		const [state, setState] = useState<RT>(
-			mapper
-				? mapper(store.currentValue())
-				: (store.currentValue() as unknown as RT)
-		)
+	const hook = <RT=T,>(
+		mapper: (state: T) => RT = (state: T) => state as unknown as RT
+	): RT => {
+		const [state, setState] = useState<RT>(mapper(store.currentValue()))
 		if (options?.local) onUnmount(() => store.set(intialValue))
 
 		useEffect(() => {
 			const subscription = store.subscribe((newState: T) => {
 				// If filter is defined, only update state if two states are not equal
-				if (
-					mapper &&
-					Utilities.AreEqual(state, mapper(newState))
-				)
-					return
-				setState(newState as unknown as RT)
+				if (Utilities.AreEqual(state, mapper(newState))) return
+				if (mapper) {
+					setState(mapper(newState))
+				}
 			})
 			return () => {
 				subscription.unsubscribe()
