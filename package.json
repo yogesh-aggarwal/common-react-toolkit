@@ -1,12 +1,12 @@
 {
     "name": "common-react-toolkit",
-    "version": "6.1.0",
+    "version": "6.2.0",
     "description": "Toolkit of common React things to make developer's life a bit easier.",
     "scripts": {
         "build": "rm -rf lib && npx tsc",
         "test": "echo \"Error: no test specified\"",
         "amend": "git add . && git commit --amend --no-edit && git push origin main -f",
-        "publish": "git checkout publish && git merge main && git push origin publish && git checkout main"
+        "gh-publish": "git checkout publish && git merge main && git push origin publish && git checkout main"
     },
     "keywords": [
         "react",
