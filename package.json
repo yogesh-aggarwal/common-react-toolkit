@@ -1,11 +1,12 @@
 {
     "name": "common-react-toolkit",
-    "version": "6.0.0",
+    "version": "6.1.0",
     "description": "Toolkit of common React things to make developer's life a bit easier.",
     "scripts": {
         "build": "rm -rf lib && npx tsc",
         "test": "echo \"Error: no test specified\"",
-        "gh-publish": "git checkout publish && git merge main && git push origin publish && git checkout main"
+        "amend": "git add . && git commit --amend --no-edit && git push origin main -f",
+        "publish": "git checkout publish && git merge main && git push origin publish && git checkout main"
     },
     "keywords": [
         "react",
@@ -22,7 +23,7 @@
     },
     "type": "module",
     "peerDependencies": {
-        "react": "^18.0.0",
+        "react": "^16.13.0",
         "rxjs": "^7.5.5"
     },
     "devDependencies": {
@@ -34,6 +35,6 @@
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
     "dependencies": {
-        "@types/react": "^18.0.0"
+        "@types/react": "^16.13.0"
     }
 }
