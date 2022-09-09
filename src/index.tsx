@@ -43,7 +43,13 @@ export class Store<T> {
 	private _storeID?: string
 
 	constructor(initialValue: T, callbacks: StoreCallbacks<T>, storeID?: string) {
-		this._store = new BehaviorSubject<T>(initialValue)
+		const localValue = localStorage.getItem(storeID ?? "")
+		this._store = new BehaviorSubject<T>(
+			localValue ? JSON.parse(localValue) : initialValue
+		)
+		if (storeID && !localValue) {
+			localStorage.setItem(storeID, JSON.stringify(this._store.value))
+		}
 		this._callbacks = callbacks
 		this._storeID = storeID
 	}
@@ -64,6 +70,9 @@ export class Store<T> {
 			this._store.next(newValue)
 		} else {
 			this._store.next((newValue as any).valueOf())
+		}
+		if (this._storeID) {
+			localStorage.setItem(this._storeID, JSON.stringify(this._store.value))
 		}
 		// After update
 		await this._callbacks.afterUpdate?.(newValue, this._store.value)
