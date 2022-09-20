@@ -1,6 +1,6 @@
 {
     "name": "common-react-toolkit",
-    "version": "6.3.0",
+    "version": "6.3.1",
     "description": "Toolkit of common React things to make developer's life a bit easier.",
     "scripts": {
         "build": "rm -rf lib && npx tsc",
@@ -23,7 +23,7 @@
     },
     "type": "module",
     "peerDependencies": {
-        "react": "^16.13.0",
+        "react": "^18.0.0",
         "rxjs": "^7.5.5"
     },
     "devDependencies": {
@@ -35,6 +35,6 @@
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
     "dependencies": {
-        "@types/react": "^16.13.0"
+        "@types/react": "^18.0.0"
     }
 }
