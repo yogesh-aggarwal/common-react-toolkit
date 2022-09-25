@@ -59,6 +59,8 @@ export class Store<T> {
 	}
 
 	async set(newValue: T): Promise<void> {
+		if (newValue === undefined) newValue = null as any
+
 		// Before update
 		const preventUpdate = await this._callbacks.beforeUpdate?.(
 			newValue,
