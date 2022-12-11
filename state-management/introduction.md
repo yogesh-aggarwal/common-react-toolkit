@@ -34,3 +34,7 @@ Given the ability to break the application's state into smaller chunks called `s
 The `store` is the most fundamental concept in terms of state management in CRT. Similar to other state management libraries, it holds the provided value as a state. Here's an illustration explaining the store:
 
 <figure><img src="../.gitbook/assets/CRT Illustration 1.svg" alt=""><figcaption><p>Working of a store</p></figcaption></figure>
+
+## Example
+
+{% embed url="https://codesandbox.io/embed/crt-state-management-n0cunq?hidenavigation=1&view=preview" %}
