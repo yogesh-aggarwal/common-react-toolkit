@@ -1,8 +1,8 @@
 # Modifying a store
 
-Stores are meant to be used as a global state. The advantage of being global is that components at any level of the component tree have the ability to modify the value of the state. To ease out the process of updating the store's value, a store handler is provided by the `makeStore` function. In the above example, it is the `userStore` variable.
+Stores are meant to be used as a global state. The advantage of being global is that components at any level of the component tree have the ability to modify the value of the state. To ease out the process of updating the store's value, a store handler is provided by the `makeStore` function. In the example, it is the `userStore` variable.
 
-Consider the following example which updates the \`user store\` after authentication from the server:
+Consider the following example which updates the `user store` after authentication from the server:
 
 {% code title="Auth.ts" lineNumbers="true" %}
 ```tsx
