@@ -134,6 +134,16 @@ export function onLifecycle(events: {
 		onUpdate(events.onUpdate.callback, events.onUpdate.dependencies)
 }
 
+export function useBindEvent<T = Event>(
+	event: string,
+	handler: (e: T) => void
+) {
+	useEffect(() => {
+		window.addEventListener(event, handler as any)
+		return () => window.removeEventListener(event, handler as any)
+	}, [event, handler])
+}
+
 type StoreHook<T> = <RT = T>(mapper?: (state: T) => RT) => RT
 
 export function makeStore<T>(
