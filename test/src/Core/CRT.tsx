@@ -2,7 +2,43 @@ import * as React from "react"
 import { DependencyList, useEffect, useState } from "react"
 import { BehaviorSubject, Subscription } from "rxjs"
 
-type StoreHook<T> = <RT = T>(
+export namespace CRT {
+	export enum Storage {
+		IndexedDB = "indexedDB",
+		LocalStorage = "localStorage",
+		SessionStorage = "sessionStorage",
+	}
+
+	type Config_t = {
+		storage: Storage
+		selfRecovery: boolean
+		storeIDMapper: (storeID: string) => string
+	}
+
+	export let CONFIG: Config_t = {
+		selfRecovery: false,
+		storage: Storage.LocalStorage,
+		storeIDMapper: (storeID) => storeID,
+	}
+
+	export function Config(config: Config_t) {
+		CONFIG = config
+	}
+}
+
+namespace Storage {
+	export function getItem(key: string): any {
+		const value = localStorage.getItem(key)
+		return value ? JSON.parse(value) : null
+	}
+
+	export function setItem(key: string, value: any) {
+		localStorage.setItem(key, JSON.stringify(value))
+	}
+}
+
+// prettier-ignore
+type StoreHook<T> = <RT=T,>(
 	mapper?: (state: T) => RT,
 	dependencies?: DependencyList
 ) => RT
@@ -58,18 +94,18 @@ export class Store<T> {
 		callbacks: StoreCallbacks_t<T>,
 		storeID?: string
 	) {
-		const localValue = localStorage.getItem(storeID ?? "")
-		this._store = new BehaviorSubject<T>(
-			localValue ? JSON.parse(localValue) : initialValue
-		)
-		if (storeID && !localValue) {
-			localStorage.setItem(storeID, JSON.stringify(this._store.value))
+		let value: T = initialValue
+		if (storeID) {
+			const localValue = Storage.getItem(storeID)
+			if (localValue) value = localValue
 		}
+		this._store = new BehaviorSubject<T>(value)
 		this._callbacks = callbacks
 		this._storeID = storeID
 	}
 
-	currentValue(): T {
+	currentValue(copy?: boolean): T {
+		if (copy) return structuredClone(this._store.value)
 		return this._store.value
 	}
 
@@ -89,7 +125,7 @@ export class Store<T> {
 			this._store.next((newValue as any).valueOf())
 		}
 		if (this._storeID) {
-			localStorage.setItem(this._storeID, JSON.stringify(this._store.value))
+			Storage.setItem(this._storeID, this._store.value)
 		}
 		// After update
 		await this._callbacks.afterUpdate?.(newValue, this._store.value)
@@ -230,6 +266,7 @@ export function makeBoundStore<T>(
 ): [Store<T>, StoreHook<T>] {
 	const [store] = makeStore<T>(initialValue, callbacks, options)
 
+	// prettier-ignore
 	const hook = <RT=T,>(
 		mapper?: (state: T) => RT,
 		dependencies?: DependencyList
