@@ -2,6 +2,30 @@ import * as React from "react"
 import { DependencyList, useEffect, useState } from "react"
 import { BehaviorSubject, Subscription } from "rxjs"
 
+export namespace CRT {
+	export enum Storage {
+		IndexedDB = "indexedDB",
+		LocalStorage = "localStorage",
+		SessionStorage = "sessionStorage",
+	}
+
+	type Config_t = {
+		storage: Storage
+		selfRecovery: boolean
+		storeIDMapper: (storeID: string) => string
+	}
+
+	let CONFIG: Config_t = {
+		selfRecovery: false,
+		storage: Storage.LocalStorage,
+		storeIDMapper: (storeID) => storeID,
+	}
+
+	export function Config(config: Config_t) {
+		CONFIG = config
+	}
+}
+
 // prettier-ignore
 type StoreHook<T> = <RT=T,>(
 	mapper?: (state: T) => RT,
