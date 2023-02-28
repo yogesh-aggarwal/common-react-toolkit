@@ -2,8 +2,7 @@ import * as React from "react"
 import { DependencyList, useEffect, useState } from "react"
 import { BehaviorSubject, Subscription } from "rxjs"
 
-// prettier-ignore
-type StoreHook<T> = <RT=T,>(
+type StoreHook<T> = <RT = T>(
 	mapper?: (state: T) => RT,
 	dependencies?: DependencyList
 ) => RT
@@ -70,8 +69,7 @@ export class Store<T> {
 		this._storeID = storeID
 	}
 
-	currentValue(copy?: boolean): T {
-		if (copy) return structuredClone(this._store.value)
+	currentValue(): T {
 		return this._store.value
 	}
 
@@ -232,7 +230,6 @@ export function makeBoundStore<T>(
 ): [Store<T>, StoreHook<T>] {
 	const [store] = makeStore<T>(initialValue, callbacks, options)
 
-	// prettier-ignore
 	const hook = <RT=T,>(
 		mapper?: (state: T) => RT,
 		dependencies?: DependencyList

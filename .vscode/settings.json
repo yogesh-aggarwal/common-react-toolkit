@@ -1,0 +1,17 @@
+{
+	"editor.tabSize": 3,
+	"editor.detectIndentation": false,
+	"editor.insertSpaces": true,
+	"explorer.fileNesting.enabled": true,
+	"explorer.fileNesting.expand": false,
+	"explorer.fileNesting.patterns": {
+		"package.json": "package-lock.json,.eslintrc.json,.eslintrc.js,.prettierrc,tsconfig*.json,.gitignore,.gitmodules,.clang-format,firebase.json",
+		"*.tsx": "$(capture).bloc.ts,$(capture).test.tsx,$(capture).css,$(capture).scss",
+		"*.cpp": "$(capture).wasm",
+		"main.tsx": "*env.d.ts,reportWebVitals.ts,setupTests.ts",
+		"firebase.json": ".firebaserc,firestore.rules,firestore.indexes.json,database.rules.json,storage.rules"
+	},
+	"files.exclude": {
+		"**/node_modules/": true
+	}
+}
