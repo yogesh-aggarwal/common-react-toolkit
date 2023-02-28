@@ -4,7 +4,7 @@ import { BehaviorSubject, Subscription } from "rxjs"
 
 export namespace CRT {
 	export enum Storage {
-		IndexedDB = "indexedDB",
+		// IndexedDB = "indexedDB",
 		LocalStorage = "localStorage",
 		SessionStorage = "sessionStorage",
 	}
@@ -28,12 +28,21 @@ export namespace CRT {
 
 namespace Storage {
 	export function getItem(key: string): any {
-		const value = localStorage.getItem(key)
-		return value ? JSON.parse(value) : null
+		if (CRT.CONFIG.storage === CRT.Storage.LocalStorage) {
+			const value = localStorage.getItem(key)
+			return value ? JSON.parse(value) : null
+		} else if (CRT.CONFIG.storage === CRT.Storage.SessionStorage) {
+			const value = sessionStorage.getItem(key)
+			return value ? JSON.parse(value) : null
+		}
 	}
 
 	export function setItem(key: string, value: any) {
-		localStorage.setItem(key, JSON.stringify(value))
+		if (CRT.CONFIG.storage === CRT.Storage.LocalStorage) {
+			localStorage.setItem(key, JSON.stringify(value))
+		} else if (CRT.CONFIG.storage === CRT.Storage.SessionStorage) {
+			sessionStorage.setItem(key, JSON.stringify(value))
+		}
 	}
 }
 
