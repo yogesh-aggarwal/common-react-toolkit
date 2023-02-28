@@ -31,6 +31,9 @@ namespace Storage {
 		if (CRT.CONFIG.storage === CRT.Storage.LocalStorage) {
 			const value = localStorage.getItem(key)
 			return value ? JSON.parse(value) : null
+		} else if (CRT.CONFIG.storage === CRT.Storage.SessionStorage) {
+			const value = sessionStorage.getItem(key)
+			return value ? JSON.parse(value) : null
 		}
 		return null
 	}
@@ -38,6 +41,8 @@ namespace Storage {
 	export function setItem(key: string, value: any) {
 		if (CRT.CONFIG.storage === CRT.Storage.LocalStorage) {
 			localStorage.setItem(key, JSON.stringify(value))
+		} else if (CRT.CONFIG.storage === CRT.Storage.SessionStorage) {
+			sessionStorage.setItem(key, JSON.stringify(value))
 		}
 	}
 }
