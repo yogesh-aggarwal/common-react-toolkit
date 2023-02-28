@@ -207,3 +207,10 @@ export function If(props: {
 }): React.ReactElement {
 	return props.value ? <>{props.children}</> : <></>
 }
+
+export function BindCallback(
+	callback: () => any | Promise<void>,
+	stores: Store<any>[]
+) {
+	for (const store of stores) store.subscribe(callback)
+}
