@@ -162,26 +162,39 @@ export function makeStore<T>(
 
 	// prettier-ignore
 	const hook = <RT=T,>(
-		mapper?: (state: T) => RT
+		mapper?: (state: T) => RT,
+		dependencies?: Store<any>[]
 	): RT => {
 		const initialValue = mapper ? mapper(store.currentValue()) : store.currentValue()
+		
 		const [state, setState] = useState<RT>(initialValue as any)
+		const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
 		if (options?.local) onUnmount(() => store.set(intialValue))
 
-		useEffect(() => {
-			const subscription = store.subscribe((newState: T) => {
-				// If filter is defined, only update state if two states are not equal
-				newState = mapper
-					? mapper(store.currentValue())
-					: (store.currentValue() as any)
+		const worker = React.useCallback((newState: T) => {
+			// If filter is defined, only update state if two states are not equal
+			newState = mapper
+				? mapper(store.currentValue())
+				: (store.currentValue() as any)
 
-				if (Utilities.AreEqual(state, newState)) return
-				setState(newState as any)
-			})
+			if (Utilities.AreEqual(state, newState)) return
+			setState(newState as any)
+		}, [mapper, state, store])
+
+		// Subscribe to stores (both main & dependencies)
+		useEffect(() => {
+			setSubscriptions([
+				// Bind main store
+				store.subscribe(worker),
+				// Bind dependency store
+				...dependencies?.map((dependency) => dependency.subscribe(worker)) ?? [],
+			])
 			return () => {
-				subscription.unsubscribe()
+				// Unsubscribe from previous subscriptions
+				for (const subscription of subscriptions) subscription.unsubscribe()
 			}
 		})
+
 		return state
 	}
 
