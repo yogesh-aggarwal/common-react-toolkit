@@ -4,7 +4,7 @@ import { BehaviorSubject, Subscription } from "rxjs"
 
 export namespace CRT {
 	export enum Storage {
-		// IndexedDB = "indexedDB",
+		IndexedDB = "indexedDB",
 		LocalStorage = "localStorage",
 		SessionStorage = "sessionStorage",
 	}
@@ -35,6 +35,7 @@ namespace Storage {
 			const value = sessionStorage.getItem(key)
 			return value ? JSON.parse(value) : null
 		}
+		return null
 	}
 
 	export function setItem(key: string, value: any) {
@@ -314,8 +315,8 @@ export function BindCallback(
 
 export function If(props: {
 	value: any
-	children: React.ReactNode | React.ReactNode[]
-}): React.ReactNode {
-	if (props.value) return props.children
-	return null
+	children: React.ReactNode
+}): React.ReactElement {
+	if (props.value) return <>{props.children}</>
+	return <></>
 }

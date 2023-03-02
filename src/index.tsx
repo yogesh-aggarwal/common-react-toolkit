@@ -315,8 +315,8 @@ export function BindCallback(
 
 export function If(props: {
 	value: any
-	children: React.ReactNode | React.ReactNode[]
-}): React.ReactNode {
-	if (props.value) return props.children
-	return null
+	children: React.ReactNode
+}): React.ReactElement {
+	if (props.value) return <>{props.children}</>
+	return <></>
 }
