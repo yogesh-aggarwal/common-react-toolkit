@@ -21,8 +21,8 @@ export namespace CRT {
 		storeIDMapper: (storeID) => storeID,
 	}
 
-	export function Config(config: Config_t) {
-		CONFIG = config
+	export function Config(config: Partial<Config_t>) {
+		CONFIG = { ...CONFIG, ...config }
 	}
 }
 
@@ -111,7 +111,7 @@ export class Store<T> {
 		}
 		this._store = new BehaviorSubject<T>(value)
 		this._callbacks = callbacks
-		this._storeID = storeID
+		if (storeID) this._storeID = CRT.CONFIG.storeIDMapper(storeID)
 	}
 
 	currentValue(copy?: boolean): T {
@@ -196,12 +196,13 @@ export function onLifecycle(events: {
 
 export function useBindEvent<T = Event>(
 	event: string,
-	handler: (e: T) => void
+	handler: (e: T) => void,
+	passive?: boolean
 ) {
 	useEffect(() => {
-		window.addEventListener(event, handler as any)
+		window.addEventListener(event, handler as any, { passive: passive })
 		return () => window.removeEventListener(event, handler as any)
-	}, [event, handler])
+	}, [event, handler, passive])
 }
 
 export function useBoundValue<T>(mapper: () => T, stores: Store<any>[]): T {
