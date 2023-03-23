@@ -1,10 +1,11 @@
 import * as React from "react"
+import isEqual from "react-fast-compare"
 import { DependencyList, useEffect, useState } from "react"
 import { BehaviorSubject, Subscription } from "rxjs"
 
 export namespace CRT {
 	export enum Storage {
-		IndexedDB = "indexedDB",
+		// IndexedDB = "indexedDB",
 		LocalStorage = "localStorage",
 		SessionStorage = "sessionStorage",
 	}
@@ -21,8 +22,8 @@ export namespace CRT {
 		storeIDMapper: (storeID) => storeID,
 	}
 
-	export function Config(config: Config_t) {
-		CONFIG = config
+	export function Config(config: Partial<Config_t>) {
+		CONFIG = { ...CONFIG, ...config }
 	}
 }
 
@@ -63,37 +64,6 @@ export type StoreConfig_t = {
 	storeID: string
 }
 
-namespace Utilities {
-	function AreArraysEqual(a: any[], b: any[]): boolean {
-		if (a.length !== b.length) return false
-		for (let i = 0; i < a.length; i++) {
-			if (!AreEqual(a[i], b[i])) return false
-		}
-		return true
-	}
-
-	function AreObjectsEqual(a: Object, b: Object): boolean {
-		const aKeys = Object.keys(a)
-		const bKeys = Object.keys(b)
-		if (!AreArraysEqual(aKeys, bKeys)) return false
-		for (const key of aKeys) {
-			if (!AreEqual((a as any)[key], (b as any)[key])) return false
-		}
-
-		return true
-	}
-
-	export function AreEqual(a: any, b: any): boolean {
-		if (typeof a !== typeof b) return false
-		if (a === b) return true
-		if ((!a && b) || (a && !b)) return false
-
-		if (Array.isArray(a) && Array.isArray(b)) return AreArraysEqual(a, b)
-		if (typeof a === "object") return AreObjectsEqual(a, b)
-		return JSON.stringify(a) === JSON.stringify(b)
-	}
-}
-
 export class Store<T> {
 	private _store: BehaviorSubject<T>
 	private _callbacks: StoreCallbacks_t<T> = {}
@@ -111,7 +81,7 @@ export class Store<T> {
 		}
 		this._store = new BehaviorSubject<T>(value)
 		this._callbacks = callbacks
-		this._storeID = storeID
+		if (storeID) this._storeID = CRT.CONFIG.storeIDMapper(storeID)
 	}
 
 	currentValue(copy?: boolean): T {
@@ -142,7 +112,8 @@ export class Store<T> {
 	}
 
 	merge(newValue: Partial<T>): void {
-		this.set({ ...this._store.value, ...newValue })
+		const mergedValue = { ...this._store.value, ...newValue }
+		if (!isEqual(mergedValue, this._store.value)) this.set(mergedValue)
 	}
 
 	subscribe(callback: (state: T) => void): Subscription {
@@ -196,12 +167,13 @@ export function onLifecycle(events: {
 
 export function useBindEvent<T = Event>(
 	event: string,
-	handler: (e: T) => void
+	handler: (e: T) => void,
+	passive?: boolean
 ) {
 	useEffect(() => {
-		window.addEventListener(event, handler as any)
+		window.addEventListener(event, handler as any, { passive: passive })
 		return () => window.removeEventListener(event, handler as any)
-	}, [event, handler])
+	}, [event, handler, passive])
 }
 
 export function useBoundValue<T>(mapper: () => T, stores: Store<any>[]): T {
@@ -245,7 +217,7 @@ export function makeStore<T>(
 					? mapper(store.currentValue())
 					: (store.currentValue() as any)
 
-				if (Utilities.AreEqual(state, newState)) return
+				if (isEqual(state, newState)) return
 				setState(newState as any)
 			})
 			return () => {
