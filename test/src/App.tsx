@@ -1,25 +1,23 @@
-import { makeBoundStore } from "./Core/CRT"
-import { state1Store, state2Store, useState1 } from "./Core/State"
-
-const [boundStore, useBoundStore] = makeBoundStore<string>(
-	"",
-	() => {
-		return state1Store.currentValue() + state2Store.currentValue()
-	},
-	[state1Store]
-)
+import { state1Store, state2Store, useState1, useState2 } from "./Core/State"
 
 export default function App() {
-	const combined = useState1(
-		(v) => {
-			return v + state2Store.currentValue()
-		},
-		[state2Store]
-	)
+	// const [state, setState] = useState(1)
+	// useEffect(() => {
+	// 	console.log("Mount")
+	// 	const subscription = state1Store.subscribe((newState) => {
+	// 		if (!isEqual(state, newState)) setState(newState as any)
+	// 	})
+	// 	return () => {
+	// 		console.log("Unmount")
+	// 		subscription.unsubscribe()
+	// 	}
+	// })
+
+	const state1 = useState1()
+	const state2 = useState2()
 
 	return (
 		<div>
-			{combined}
 			<button onClick={() => state1Store.set(state1Store.currentValue() + 1)}>
 				+
 			</button>

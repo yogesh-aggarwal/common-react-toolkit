@@ -12,13 +12,23 @@ export namespace CRT {
 
 	type Config_t = {
 		storage: Storage
+
+		dbVersion: number
+		application: string
+
 		selfRecovery: boolean
+		errorCallback: () => any
 		storeIDMapper: (storeID: string) => string
 	}
 
 	export let CONFIG: Config_t = {
-		selfRecovery: false,
 		storage: Storage.LocalStorage,
+
+		dbVersion: 1,
+		application: "CRT",
+
+		selfRecovery: false,
+		errorCallback: () => {},
 		storeIDMapper: (storeID) => storeID,
 	}
 
@@ -74,14 +84,21 @@ export class Store<T> {
 		callbacks: StoreCallbacks_t<T>,
 		storeID?: string
 	) {
+		this._callbacks = callbacks
+
 		let value: T = initialValue
 		if (storeID) {
-			const localValue = Storage.getItem(storeID)
+			this.__prepareStoreID__(storeID)
+			const localValue = Storage.getItem(this._storeID!)
 			if (localValue) value = localValue
 		}
 		this._store = new BehaviorSubject<T>(value)
-		this._callbacks = callbacks
-		if (storeID) this._storeID = CRT.CONFIG.storeIDMapper(storeID)
+	}
+
+	private __prepareStoreID__(storeID: string) {
+		this._storeID = `${CRT.CONFIG.application}.v${
+			CRT.CONFIG.dbVersion
+		}.${CRT.CONFIG.storeIDMapper(storeID)}`
 	}
 
 	currentValue(copy?: boolean): T {
@@ -89,8 +106,9 @@ export class Store<T> {
 		return this._store.value
 	}
 
-	async set(newValue: T): Promise<void> {
+	async set(newValue: T, noCompare?: boolean): Promise<void> {
 		if (newValue === undefined) newValue = null as any
+		if (!noCompare && isEqual(newValue, this._store.value)) return
 
 		// Before update
 		const preventUpdate = await this._callbacks.beforeUpdate?.(
@@ -111,9 +129,9 @@ export class Store<T> {
 		await this._callbacks.afterUpdate?.(newValue, this._store.value)
 	}
 
-	merge(newValue: Partial<T>): void {
+	merge(newValue: Partial<T>, noCompare?: boolean): void {
 		const mergedValue = { ...this._store.value, ...newValue }
-		if (!isEqual(mergedValue, this._store.value)) this.set(mergedValue)
+		this.set(mergedValue, noCompare)
 	}
 
 	subscribe(callback: (state: T) => void): Subscription {
@@ -165,15 +183,40 @@ export function onLifecycle(events: {
 		onUpdate(events.onUpdate.callback, events.onUpdate.dependencies)
 }
 
-export function useBindEvent<T = Event>(
+export function useBindEvent<T = Event, El = HTMLElement>(
 	event: string,
 	handler: (e: T) => void,
-	passive?: boolean
+	config: {
+		passive?: boolean
+		once?: boolean
+		capture?: boolean
+		signal?: AbortSignal
+		ref?: React.RefObject<El>
+		id?: string
+	} = {}
 ) {
+	if (config.id && config.ref) {
+		throw new Error(
+			`[CRT] You are using both id and ref in useBindEvent which are not allowed as per the specification. Please use only one of them or refer to docs at https://yogeshaggarwal.gitbook.io/common-react-toolkit/ for more info.`
+		)
+	}
 	useEffect(() => {
-		window.addEventListener(event, handler as any, { passive: passive })
+		if (config.id) {
+			const el = document.getElementById(config.id)
+			if (!el) return
+			el.addEventListener(event, handler as any, { ...config })
+			return () => el.removeEventListener(event, handler as any)
+		} else if (config.ref && config.ref.current) {
+			;(config.ref.current as any).addEventListener(event, handler as any, {
+				...config,
+			})
+			return () =>
+				config.ref &&
+				(config.ref.current as any).removeEventListener(event, handler as any)
+		}
+		window.addEventListener(event, handler as any, { ...config })
 		return () => window.removeEventListener(event, handler as any)
-	}, [event, handler, passive])
+	}, [event, handler, config])
 }
 
 export function useBoundValue<T>(mapper: () => T, stores: Store<any>[]): T {
@@ -191,12 +234,12 @@ export function useBoundValue<T>(mapper: () => T, stores: Store<any>[]): T {
 }
 
 export function makeStore<T>(
-	intialValue: T,
+	initialValue: T,
 	callbacks?: StoreCallbacks_t<T>,
 	config?: Partial<StoreConfig_t>
 ): [Store<T>, StoreHook<T>] {
 	const store = new Store<T>(
-		intialValue,
+		initialValue,
 		callbacks ? callbacks : {},
 		config?.storeID
 	)
@@ -206,27 +249,30 @@ export function makeStore<T>(
 		mapper?: (state: T) => RT,
 		dependencies?: DependencyList
 	): RT => {
-		const initialValue = mapper ? mapper(store.currentValue()) : store.currentValue()
-		const [state, setState] = useState<RT>(initialValue as any)
-		if (config?.local) onUnmount(() => store.set(intialValue))
+      const initialValue = store.currentValue()
+		const [state, setState] = useState<RT>(
+			mapper ? mapper(initialValue) : (initialValue as any)
+		)
+		const [subscription, setSubscription] = useState<Subscription | undefined>(
+			undefined
+		)
+		if (config?.local) onUnmount(() => store.set(initialValue))
 
-		useEffect(() => {
-			const subscription = store.subscribe((newState: T) => {
-				// If filter is defined, only update state if two states are not equal
-				newState = mapper
-					? mapper(store.currentValue())
-					: (store.currentValue() as any)
-
-				if (isEqual(state, newState)) return
-				setState(newState as any)
-			})
-			return () => {
-				subscription.unsubscribe()
-			}
+		onMount(() => {
+			if (subscription) subscription.unsubscribe()
+			setSubscription(
+				store.subscribe((newState: T) => {
+					// If filter is defined
+					newState = mapper ? mapper(newState) : (newState as any)
+					// Only update state if two states are not equal
+					if (!isEqual(state, newState)) setState(newState as any)
+				})
+			)
 		})
+		onUnmount(() => { subscription?.unsubscribe() })
 
 		if (mapper && dependencies)
-			useEffect(() => {
+			onUpdate(() => {
 				setState(mapper(store.currentValue()) as any)
 			}, dependencies)
 
@@ -241,31 +287,38 @@ export function makeBoundStore<T>(
 	valueMapper: () => T,
 	stores: Store<any>[],
 	callbacks?: StoreCallbacks_t<T>,
-	options?: {
+	config?: {
 		local?: boolean
 		storeID?: string
 	}
 ): [Store<T>, StoreHook<T>] {
-	const [store] = makeStore<T>(initialValue, callbacks, options)
+	const [store] = makeStore<T>(initialValue, callbacks, config)
 
 	// prettier-ignore
 	const hook = <RT=T,>(
 		mapper?: (state: T) => RT,
 		dependencies?: DependencyList
 	): RT => {
+		const initialValue = valueMapper()
 		const [state, setState] = useState<RT>(
-			mapper ? mapper(valueMapper()) : (valueMapper() as any)
+			mapper ? mapper(initialValue) : (initialValue as any)
 		)
-		useEffect(() => {
-			const subscriptions = stores.map((dependency) =>
-				dependency.subscribe(() =>
-					setState(mapper ? mapper(valueMapper()) : (valueMapper() as any))
+		const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
+		if (config?.local) onUnmount(() => store.set(initialValue))
+
+		onMount(() => {
+			setSubscriptions(
+				stores.map((dependency) =>
+					dependency.subscribe(() => {
+						const value = valueMapper()
+						setState(mapper ? mapper(value) : (value as any))
+					})
 				)
 			)
-			return () => {
-				subscriptions.forEach((subscription) => subscription.unsubscribe())
-			}
-		}, [])
+		})
+      onUnmount(() => {
+         subscriptions.forEach((subscription) => subscription.unsubscribe())
+      })
 
 		if (mapper && dependencies)
 			useEffect(() => {
@@ -288,7 +341,7 @@ export function BindCallback(
 export function If(props: {
 	value: any
 	children: React.ReactNode
-}): React.ReactElement {
+}): React.ReactElement | null {
 	if (props.value) return <>{props.children}</>
-	return <></>
+	return null
 }
