@@ -1,42 +1,42 @@
 {
-    "name": "common-react-toolkit",
-    "version": "6.5.6",
-    "description": "Toolkit of common React things to make developer's life a bit easier.",
-    "scripts": {
-        "build": "rm -rf lib && npx tsc",
-        "test": "echo \"Error: no test specified\"",
-        "amend": "git add . && git commit --amend --no-edit && git push origin main -f",
-        "gh-publish": "git checkout publish && git merge main && git push origin publish && git checkout main",
-        "local-publish": "npm ci && npm run build && npm publish"
-    },
-    "keywords": [
-        "react",
-        "reactjs",
-        "react-native",
-        "state",
-        "state-management"
-    ],
-    "author": "Yogesh Aggarwal",
-    "license": "ISC",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/yogesh-aggarwal/common-react-toolkit"
-    },
-    "type": "module",
-    "peerDependencies": {
-        "react": "^18.0.0",
-        "rxjs": "^7.5.5"
-    },
-    "devDependencies": {
-        "typescript": "^4.9.4"
-    },
-    "files": [
-        "lib/**/*"
-    ],
-    "main": "lib/index.js",
-    "types": "lib/index.d.ts",
-    "dependencies": {
-        "@types/react": "^18.0.0",
-        "react-fast-compare": "^3.2.1"
-    }
+   "name": "common-react-toolkit",
+   "version": "6.5.8",
+   "description": "Toolkit of common React things to make developer's life a bit easier.",
+   "scripts": {
+      "build": "rm -rf lib && npx tsc",
+      "test": "echo \"Error: no test specified\"",
+      "amend": "git add . && git commit --amend --no-edit && git push origin main -f",
+      "gh-publish": "git push origin main && git branch -D publish && git checkout -b publish && git push origin publish -f && git checkout main",
+      "local-publish": "npm ci && npm run build && npm publish"
+   },
+   "keywords": [
+      "react",
+      "reactjs",
+      "react-native",
+      "state",
+      "state-management"
+   ],
+   "author": "Yogesh Aggarwal",
+   "license": "ISC",
+   "repository": {
+      "type": "git",
+      "url": "https://github.com/yogesh-aggarwal/common-react-toolkit"
+   },
+   "type": "module",
+   "peerDependencies": {
+      "react": "^18.0.0",
+      "rxjs": "^7.5.5"
+   },
+   "devDependencies": {
+      "typescript": "^4.9.4"
+   },
+   "files": [
+      "lib/**/*"
+   ],
+   "main": "lib/index.js",
+   "types": "lib/index.d.ts",
+   "dependencies": {
+      "@types/react": "^18.0.0",
+      "react-fast-compare": "^3.2.1"
+   }
 }

@@ -108,7 +108,7 @@ export class Store<T> {
 
 	async set(newValue: T, noCompare?: boolean): Promise<void> {
 		if (newValue === undefined) newValue = null as any
-		if (!noCompare && isEqual(newValue, this._store.value)) return
+		if (isEqual(newValue, this._store.value) && !noCompare) return
 
 		// Before update
 		const preventUpdate = await this._callbacks.beforeUpdate?.(
@@ -221,15 +221,15 @@ export function useBindEvent<T = Event, El = HTMLElement>(
 
 export function useBoundValue<T>(mapper: () => T, stores: Store<any>[]): T {
 	const [value, setValue] = useState(mapper())
-	useEffect(() => {
-		const subscriptions = stores.map((dependency) =>
-			dependency.subscribe(() => setValue(mapper()))
+	const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
+	onMount(() => {
+		setSubscriptions(
+			stores.map((dependency) => dependency.subscribe(() => setValue(mapper())))
 		)
-		return () => {
-			subscriptions.forEach((subscription) => subscription.unsubscribe())
-		}
-	}, [])
-
+	})
+	onUnmount(() => {
+		subscriptions.forEach((subscription) => subscription.unsubscribe())
+	})
 	return value
 }
 

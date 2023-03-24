@@ -1,23 +1,40 @@
-import { state1Store, state2Store, useState1, useState2 } from "./Core/State"
+import { makeStore } from "./Core/CRT"
+import { state1Store, state2Store } from "./Core/State"
+
+const [userStore, useUser] = makeStore<{
+	id: string
+	name: { first: string; last: { p1: string; p2: { p1: string; p2: string } } }
+}>({
+	id: "1",
+	name: { first: "John", last: { p1: "D", p2: { p1: "o", p2: "e" } } },
+})
 
 export default function App() {
-	// const [state, setState] = useState(1)
-	// useEffect(() => {
-	// 	console.log("Mount")
-	// 	const subscription = state1Store.subscribe((newState) => {
-	// 		if (!isEqual(state, newState)) setState(newState as any)
-	// 	})
-	// 	return () => {
-	// 		console.log("Unmount")
-	// 		subscription.unsubscribe()
-	// 	}
-	// })
+	const user = useUser()
 
-	const state1 = useState1()
-	const state2 = useState2()
+	console.log("render")
 
 	return (
 		<div>
+			<div
+				onClick={() => {
+					userStore.set({
+						...userStore.currentValue(),
+						name: {
+							...userStore.currentValue().name,
+							last: {
+								...userStore.currentValue().name.last,
+								p2: {
+									...userStore.currentValue().name.last.p2,
+									p1: "a",
+								},
+							},
+						},
+					})
+				}}
+			>
+				{JSON.stringify(user)}
+			</div>
 			<button onClick={() => state1Store.set(state1Store.currentValue() + 1)}>
 				+
 			</button>
