@@ -108,7 +108,7 @@ export class Store<T> {
 
 	async set(newValue: T, noCompare?: boolean): Promise<void> {
 		if (newValue === undefined) newValue = null as any
-		if (!noCompare && isEqual(newValue, this._store.value)) return
+		if (isEqual(newValue, this._store.value) && noCompare) return
 
 		// Before update
 		const preventUpdate = await this._callbacks.beforeUpdate?.(
