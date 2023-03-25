@@ -249,27 +249,21 @@ export function makeStore<T>(
 		mapper?: (state: T) => RT,
 		dependencies?: DependencyList
 	): RT => {
-      const initialValue = store.currentValue()
+		const initialValue = store.currentValue()
 		const [state, setState] = useState<RT>(
 			mapper ? mapper(initialValue) : (initialValue as any)
 		)
-		const [subscription, setSubscription] = useState<Subscription | undefined>(
-			undefined
-		)
 		if (config?.local) onUnmount(() => store.set(initialValue))
 
-		onMount(() => {
-			if (subscription) subscription.unsubscribe()
-			setSubscription(
-				store.subscribe((newState: T) => {
-					// If filter is defined
-					newState = mapper ? mapper(newState) : (newState as any)
-					// Only update state if two states are not equal
-					if (!isEqual(state, newState)) setState(newState as any)
-				})
-			)
-		})
-		onUnmount(() => { subscription?.unsubscribe() })
+		useEffect(() => {
+			const subscription = store.subscribe((newState: T) => {
+				// If filter is defined
+				newState = mapper ? mapper(newState) : (newState as any)
+				// Only update state if two states are not equal
+				if (!isEqual(state, newState)) setState(newState as any)
+			})
+			return () => subscription.unsubscribe()
+		}, [])
 
 		if (mapper && dependencies)
 			onUpdate(() => {
@@ -303,22 +297,18 @@ export function makeBoundStore<T>(
 		const [state, setState] = useState<RT>(
 			mapper ? mapper(initialValue) : (initialValue as any)
 		)
-		const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
 		if (config?.local) onUnmount(() => store.set(initialValue))
 
-		onMount(() => {
-			setSubscriptions(
-				stores.map((dependency) =>
-					dependency.subscribe(() => {
-						const value = valueMapper()
-						setState(mapper ? mapper(value) : (value as any))
-					})
-				)
+		useEffect(() => {
+			const subscriptions = stores.map((dependency) =>
+				dependency.subscribe(() => {
+					const value = valueMapper()
+					setState(mapper ? mapper(value) : (value as any))
+				})
 			)
-		})
-      onUnmount(() => {
-         subscriptions.forEach((subscription) => subscription.unsubscribe())
-      })
+			return () =>
+				subscriptions.forEach((subscription) => subscription.unsubscribe())
+		}, [])
 
 		if (mapper && dependencies)
 			useEffect(() => {
