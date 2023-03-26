@@ -110,7 +110,7 @@ export class Store<T> {
 		if (storeID) {
 			this._storeID = this._prepareStoreID(storeID)
 			if (!noCache) {
-				const localValue = Storage.getItem(storeID)
+				const localValue = Storage.getItem(this._storeID)
 				if (localValue) value = localValue
 			}
 		}
