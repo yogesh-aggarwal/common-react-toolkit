@@ -1,34 +1,30 @@
 import * as React from "react"
 import isEqual from "react-fast-compare"
 import { DependencyList, useEffect, useState } from "react"
-import { BehaviorSubject, Subscription } from "rxjs"
+import { BehaviorSubject, Subscription, combineLatest } from "rxjs"
 
 export namespace CRT {
 	export enum Storage {
-		// IndexedDB = "indexedDB",
 		LocalStorage = "localStorage",
 		SessionStorage = "sessionStorage",
 	}
 
 	type Config_t = {
-		storage: Storage
-
-		dbVersion: number
 		application: string
+		dbVersion: number
 
+		storage: Storage
 		selfRecovery: boolean
-		errorCallback: () => any
+		onRecovery?: () => any
 		storeIDMapper: (storeID: string) => string
 	}
 
 	export let CONFIG: Config_t = {
-		storage: Storage.LocalStorage,
-
-		dbVersion: 1,
-		application: "CRT",
-
 		selfRecovery: false,
-		errorCallback: () => {},
+		application: "CRT",
+		dbVersion: 1,
+
+		storage: Storage.LocalStorage,
 		storeIDMapper: (storeID) => storeID,
 	}
 
@@ -39,12 +35,28 @@ export namespace CRT {
 
 namespace Storage {
 	export function getItem(key: string): any {
-		if (CRT.CONFIG.storage === CRT.Storage.LocalStorage) {
-			const value = localStorage.getItem(key)
-			return value ? JSON.parse(value) : null
-		} else if (CRT.CONFIG.storage === CRT.Storage.SessionStorage) {
-			const value = sessionStorage.getItem(key)
-			return value ? JSON.parse(value) : null
+		if (
+			[CRT.Storage.LocalStorage, CRT.Storage.SessionStorage].includes(
+				CRT.CONFIG.storage
+			)
+		) {
+			let value: any = null
+			if (CRT.CONFIG.storage === CRT.Storage.LocalStorage)
+				value = localStorage.getItem(key)
+			else value = sessionStorage.getItem(key)
+
+			if (!value) return null
+
+			try {
+				return JSON.parse(value)
+			} catch (e) {
+				const preventRecovery = CRT.CONFIG.onRecovery?.()
+				if (!preventRecovery && CRT.CONFIG.selfRecovery) {
+					localStorage.removeItem(key)
+					sessionStorage.removeItem(key)
+				}
+				return null
+			}
 		}
 		return null
 	}
@@ -72,43 +84,58 @@ export type StoreCallbacks_t<T> = {
 export type StoreConfig_t = {
 	local: boolean
 	storeID: string
+	noCache: boolean
 }
 
 export class Store<T> {
 	private _store: BehaviorSubject<T>
 	private _callbacks: StoreCallbacks_t<T> = {}
 	private _storeID?: string
+	private _noCache?: boolean
+
+	get storeID() {
+		return this._storeID
+	}
+	get store() {
+		return this._store
+	}
 
 	constructor(
 		initialValue: T,
 		callbacks: StoreCallbacks_t<T>,
-		storeID?: string
+		storeID?: string,
+		noCache?: boolean
 	) {
-		this._callbacks = callbacks
-
 		let value: T = initialValue
 		if (storeID) {
-			this.__prepareStoreID__(storeID)
-			const localValue = Storage.getItem(this._storeID!)
-			if (localValue) value = localValue
+			this._storeID = this._prepareStoreID(storeID)
+			if (!noCache) {
+				const localValue = Storage.getItem(storeID)
+				if (localValue) value = localValue
+			}
 		}
 		this._store = new BehaviorSubject<T>(value)
+		this._callbacks = callbacks
 	}
 
-	private __prepareStoreID__(storeID: string) {
-		this._storeID = `${CRT.CONFIG.application}.v${
+	private _prepareStoreID(storeID: string): string {
+		return `[${CRT.CONFIG.application}.v${
 			CRT.CONFIG.dbVersion
-		}.${CRT.CONFIG.storeIDMapper(storeID)}`
+		}] ${CRT.CONFIG.storeIDMapper(storeID)}`
 	}
 
-	currentValue(copy?: boolean): T {
-		if (copy) return structuredClone(this._store.value)
-		return this._store.value
+	currentValue(): T {
+		const value = this._store.value
+		try {
+			return structuredClone(value)
+		} catch (e) {
+			return value
+		}
 	}
 
-	async set(newValue: T, noCompare?: boolean): Promise<void> {
+	async set(newValue: T): Promise<void> {
 		if (newValue === undefined) newValue = null as any
-		if (isEqual(newValue, this._store.value) && !noCompare) return
+		if (isEqual(newValue, this._store.value)) return
 
 		// Before update
 		const preventUpdate = await this._callbacks.beforeUpdate?.(
@@ -122,16 +149,16 @@ export class Store<T> {
 		} else {
 			this._store.next((newValue as any).valueOf())
 		}
-		if (this._storeID) {
-			Storage.setItem(this._storeID, this._store.value)
+		if (this._storeID && !this._noCache) {
+			Storage.setItem(this._storeID!, this._store.value)
 		}
 		// After update
 		await this._callbacks.afterUpdate?.(newValue, this._store.value)
 	}
 
-	merge(newValue: Partial<T>, noCompare?: boolean): void {
+	merge(newValue: Partial<T>): void {
 		const mergedValue = { ...this._store.value, ...newValue }
-		this.set(mergedValue, noCompare)
+		if (!isEqual(mergedValue, this._store.value)) this.set(mergedValue)
 	}
 
 	subscribe(callback: (state: T) => void): Subscription {
@@ -183,95 +210,68 @@ export function onLifecycle(events: {
 		onUpdate(events.onUpdate.callback, events.onUpdate.dependencies)
 }
 
-export function useBindEvent<T = Event, El = HTMLElement>(
+export function useBindEvent<T = Event>(
 	event: string,
 	handler: (e: T) => void,
-	config: {
-		passive?: boolean
-		once?: boolean
-		capture?: boolean
-		signal?: AbortSignal
-		ref?: React.RefObject<El>
-		id?: string
-	} = {}
+	passive?: boolean
 ) {
-	if (config.id && config.ref) {
-		throw new Error(
-			`[CRT] You are using both id and ref in useBindEvent which are not allowed as per the specification. Please use only one of them or refer to docs at https://yogeshaggarwal.gitbook.io/common-react-toolkit/ for more info.`
-		)
-	}
 	useEffect(() => {
-		if (config.id) {
-			const el = document.getElementById(config.id)
-			if (!el) return
-			el.addEventListener(event, handler as any, { ...config })
-			return () => el.removeEventListener(event, handler as any)
-		} else if (config.ref && config.ref.current) {
-			;(config.ref.current as any).addEventListener(event, handler as any, {
-				...config,
-			})
-			return () =>
-				config.ref &&
-				(config.ref.current as any).removeEventListener(event, handler as any)
-		}
-		window.addEventListener(event, handler as any, { ...config })
+		window.addEventListener(event, handler as any, { passive: passive })
 		return () => window.removeEventListener(event, handler as any)
-	}, [event, handler, config])
+	}, [event, handler, passive])
 }
 
 export function useBoundValue<T>(mapper: () => T, stores: Store<any>[]): T {
 	const [value, setValue] = useState(mapper())
-	const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
-	onMount(() => {
-		setSubscriptions(
-			stores.map((dependency) => dependency.subscribe(() => setValue(mapper())))
-		)
-	})
-	onUnmount(() => {
-		subscriptions.forEach((subscription) => subscription.unsubscribe())
-	})
+
+	useEffect(() => {
+		const subscription = combineLatest(
+			stores.map((store) => store.store)
+		).subscribe(() => {
+			setValue(mapper())
+		})
+		return () => subscription.unsubscribe()
+	}, [])
+
 	return value
 }
 
 export function makeStore<T>(
-	initialValue: T,
+	intialValue: T,
 	callbacks?: StoreCallbacks_t<T>,
 	config?: Partial<StoreConfig_t>
 ): [Store<T>, StoreHook<T>] {
 	const store = new Store<T>(
-		initialValue,
+		intialValue,
 		callbacks ? callbacks : {},
-		config?.storeID
+		config?.storeID,
+		config?.noCache
 	)
 
 	// prettier-ignore
-	const hook = <RT=T,>(
-		mapper?: (state: T) => RT,
-		dependencies?: DependencyList
-	): RT => {
-		const initialValue = store.currentValue()
-		const [state, setState] = useState<RT>(
-			mapper ? mapper(initialValue) : (initialValue as any)
-		)
-		if (config?.local) onUnmount(() => store.set(initialValue))
+	const hook = <RT=T,>(mapper?: (state: T) => RT, dependencies?: DependencyList): RT => {
+      const initialValue = mapper ? mapper(store.currentValue()) : store.currentValue()
+      const [state, setState] = useState<RT>(initialValue as any)
+      if (config?.local) onUnmount(() => store.set(intialValue))
 
-		useEffect(() => {
-			const subscription = store.subscribe((newState: T) => {
-				// If filter is defined
-				newState = mapper ? mapper(newState) : (newState as any)
-				// Only update state if two states are not equal
-				if (!isEqual(state, newState)) setState(newState as any)
-			})
-			return () => subscription.unsubscribe()
-		}, [])
+      useEffect(() => {
+         const subscription = store.subscribe((newState: T) => {
+            newState = mapper ? mapper(newState) : (newState as any)
+            setState((prevState: any) =>  {
+               if (isEqual(prevState, newState)) return prevState
+               return newState
+            })
+         })
+         return () => subscription.unsubscribe()
+      }, [])
 
-		if (mapper && dependencies)
-			onUpdate(() => {
-				setState(mapper(store.currentValue()) as any)
-			}, dependencies)
+      if (mapper && dependencies)
+      	useEffect(() => {
+      		setState(mapper(store.currentValue()) as any)
+      	}, dependencies)
 
-		return state
-	}
+      return state
+   }
 
 	return [store, hook]
 }
@@ -281,42 +281,35 @@ export function makeBoundStore<T>(
 	valueMapper: () => T,
 	stores: Store<any>[],
 	callbacks?: StoreCallbacks_t<T>,
-	config?: {
-		local?: boolean
-		storeID?: string
-	}
+	options?: Partial<StoreConfig_t>
 ): [Store<T>, StoreHook<T>] {
-	const [store] = makeStore<T>(initialValue, callbacks, config)
+	const [store] = makeStore<T>(initialValue, callbacks, options)
 
 	// prettier-ignore
-	const hook = <RT=T,>(
-		mapper?: (state: T) => RT,
-		dependencies?: DependencyList
-	): RT => {
-		const initialValue = valueMapper()
-		const [state, setState] = useState<RT>(
-			mapper ? mapper(initialValue) : (initialValue as any)
-		)
-		if (config?.local) onUnmount(() => store.set(initialValue))
+	const hook = <RT=T,>(mapper?: (state: T) => RT, dependencies?: DependencyList): RT => {
+      const [state, setState] = useState<RT>(
+         mapper ? mapper(valueMapper()) : (valueMapper() as any),
+      )
+      useEffect(() => {
+         const subscriptions = stores.map((dependency) =>
+            dependency.subscribe(() => {
+               const newState = mapper ? mapper(valueMapper()) : (valueMapper() as any)
+               setState((prevState: any) => {
+                  if (isEqual(prevState, newState)) return prevState
+                  return newState
+               })
+            }),
+         )
+         return () => subscriptions.forEach((subscription) => subscription.unsubscribe())
+      }, [])
 
-		useEffect(() => {
-			const subscriptions = stores.map((dependency) =>
-				dependency.subscribe(() => {
-					const value = valueMapper()
-					setState(mapper ? mapper(value) : (value as any))
-				})
-			)
-			return () =>
-				subscriptions.forEach((subscription) => subscription.unsubscribe())
-		}, [])
+      if (mapper && dependencies)
+         useEffect(() => {
+            setState(mapper(store.currentValue()) as any)
+         }, dependencies)
 
-		if (mapper && dependencies)
-			useEffect(() => {
-				setState(mapper(store.currentValue()) as any)
-			}, dependencies)
-
-		return state
-	}
+      return state
+   }
 
 	return [store, hook]
 }
