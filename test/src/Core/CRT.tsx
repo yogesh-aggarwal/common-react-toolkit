@@ -1,7 +1,6 @@
-import * as React from "react"
+import { DependencyList, useEffect, useMemo, useState } from "react"
 import isEqual from "react-fast-compare"
-import { DependencyList, useEffect, useState } from "react"
-import { BehaviorSubject, Subscription, combineLatest } from "rxjs"
+import { BehaviorSubject, combineLatest, Subscription } from "rxjs"
 
 export namespace CRT {
 	export enum Storage {
@@ -110,7 +109,7 @@ export class Store<T> {
 		if (storeID) {
 			this._storeID = this._prepareStoreID(storeID)
 			if (!noCache) {
-				const localValue = Storage.getItem(storeID)
+				const localValue = Storage.getItem(this._storeID)
 				if (localValue) value = localValue
 			}
 		}
@@ -222,56 +221,64 @@ export function useBindEvent<T = Event>(
 }
 
 export function useBoundValue<T>(mapper: () => T, stores: Store<any>[]): T {
-	const [value, setValue] = useState(mapper())
+	const initialValue = useMemo(() => mapper(), [])
+	const [value, setValue] = useState(initialValue)
 
-	useEffect(() => {
-		const subscription = combineLatest(
-			stores.map((store) => store.store)
-		).subscribe(() => {
-			setValue(mapper())
-		})
-		return () => subscription.unsubscribe()
-	}, [])
+	const [subscription, setSubscription] = useState<Subscription | null>(null)
+	onMount(() => {
+		setSubscription(
+			combineLatest(stores.map((store) => store.store)).subscribe(() => {
+				setValue(mapper())
+			})
+		)
+	})
+	onUnmount(() => subscription?.unsubscribe())
 
 	return value
 }
 
 export function makeStore<T>(
-	intialValue: T,
+	initialValue: T,
 	callbacks?: StoreCallbacks_t<T>,
 	config?: Partial<StoreConfig_t>
 ): [Store<T>, StoreHook<T>] {
 	const store = new Store<T>(
-		intialValue,
+		initialValue,
 		callbacks ? callbacks : {},
 		config?.storeID,
 		config?.noCache
 	)
 
 	// prettier-ignore
-	const hook = <RT=T,>(mapper?: (state: T) => RT, dependencies?: DependencyList): RT => {
-      const initialValue = mapper ? mapper(store.currentValue()) : store.currentValue()
-      const [state, setState] = useState<RT>(initialValue as any)
-      if (config?.local) onUnmount(() => store.set(intialValue))
+	const hook = <RT=T,>(
+		mapper: (state: T) => RT = (x) => x as any,
+		dependencies?: DependencyList
+	): RT => {
+      const value = useMemo(() => mapper(store.currentValue()), [])
+		const [state, setState] = useState<RT>(value)
+      if (config?.local) onUnmount(() => store.set(initialValue))
 
-      useEffect(() => {
-         const subscription = store.subscribe((newState: T) => {
-            newState = mapper ? mapper(newState) : (newState as any)
-            setState((prevState: any) =>  {
-               if (isEqual(prevState, newState)) return prevState
-               return newState
-            })
-         })
-         return () => subscription.unsubscribe()
-      }, [])
+		const [subscription, setSubscription] = useState<Subscription | null>(null)      
+		onMount(() => {
+			setSubscription(
+				store.subscribe((newState: T) => {
+					newState = mapper(newState) as any
+					setState((prevState: any) => {
+						if (isEqual(prevState, newState)) return prevState
+						return newState
+					})
+				})
+			)
+		})
+		onUnmount(() => subscription?.unsubscribe())
 
-      if (mapper && dependencies)
-      	useEffect(() => {
-      		setState(mapper(store.currentValue()) as any)
-      	}, dependencies)
+		if (mapper && dependencies)
+			useEffect(() => {
+				setState(mapper(store.currentValue()) as any)
+			}, dependencies)
 
-      return state
-   }
+		return state
+	}
 
 	return [store, hook]
 }
@@ -286,30 +293,34 @@ export function makeBoundStore<T>(
 	const [store] = makeStore<T>(initialValue, callbacks, options)
 
 	// prettier-ignore
-	const hook = <RT=T,>(mapper?: (state: T) => RT, dependencies?: DependencyList): RT => {
-      const [state, setState] = useState<RT>(
-         mapper ? mapper(valueMapper()) : (valueMapper() as any),
-      )
-      useEffect(() => {
-         const subscriptions = stores.map((dependency) =>
-            dependency.subscribe(() => {
-               const newState = mapper ? mapper(valueMapper()) : (valueMapper() as any)
-               setState((prevState: any) => {
-                  if (isEqual(prevState, newState)) return prevState
-                  return newState
-               })
-            }),
-         )
-         return () => subscriptions.forEach((subscription) => subscription.unsubscribe())
-      }, [])
+	const hook = <RT=T,>(
+		mapper: (state: T) => RT = (x) => x as any,
+		dependencies?: DependencyList
+	): RT => {
+      const value = useMemo(() => mapper(valueMapper()), [])
+		const [state, setState] = useState<RT>(value)
 
-      if (mapper && dependencies)
-         useEffect(() => {
-            setState(mapper(store.currentValue()) as any)
-         }, dependencies)
+		const [subscription, setSubscription] = useState<Subscription | null>(null)
+		onMount(() => {
+			setSubscription(
+				combineLatest(stores.map((store) => store.store)).subscribe(() => {
+					const newState = mapper(valueMapper())
+					setState((prevState: any) => {
+						if (isEqual(prevState, newState)) return prevState
+						return newState
+					})
+				})
+			)
+		})
+		onUnmount(() => subscription?.unsubscribe())
 
-      return state
-   }
+		if (mapper && dependencies)
+			useEffect(() => {
+				setState(mapper(store.currentValue()) as any)
+			}, dependencies)
+
+		return state
+	}
 
 	return [store, hook]
 }

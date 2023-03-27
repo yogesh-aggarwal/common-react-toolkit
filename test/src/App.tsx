@@ -1,5 +1,5 @@
 import { makeStore } from "./Core/CRT"
-import { state1Store, state2Store } from "./Core/State"
+import { state1Store, state2Store, useState1 } from "./Core/State"
 
 const [userStore, useUser] = makeStore<{
 	id: string
@@ -11,8 +11,10 @@ const [userStore, useUser] = makeStore<{
 
 export default function App() {
 	const user = useUser()
-
-	console.log("render")
+	const user1 = useState1(() => {
+		console.log("re")
+		return 1
+	})
 
 	return (
 		<div>
