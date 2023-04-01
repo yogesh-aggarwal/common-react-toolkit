@@ -1,4 +1,4 @@
-import { DependencyList, useEffect, useMemo, useState } from "react"
+import { DependencyList, RefObject, useEffect, useMemo, useState } from "react"
 import isEqual from "react-fast-compare"
 import { BehaviorSubject, combineLatest, Subscription } from "rxjs"
 
@@ -212,12 +212,36 @@ export function onLifecycle(events: {
 export function useBindEvent<T = Event>(
 	event: string,
 	handler: (e: T) => void,
-	passive?: boolean
+	config: {
+		passive?: boolean
+		capture?: boolean
+		once?: boolean
+		signal?: AbortSignal
+		ref?: RefObject<HTMLElement>
+	} = {}
 ) {
 	useEffect(() => {
-		window.addEventListener(event, handler as any, { passive: passive })
-		return () => window.removeEventListener(event, handler as any)
-	}, [event, handler, passive])
+		if (config.ref) {
+			const element = config.ref.current
+			if (element) {
+				element.addEventListener(event, handler as any, {
+					passive: config.passive,
+					capture: config.capture,
+					once: config.once,
+					signal: config.signal,
+				})
+				return () => element.removeEventListener(event, handler as any)
+			}
+		} else {
+			window.addEventListener(event, handler as any, {
+				passive: config.passive,
+				capture: config.capture,
+				once: config.once,
+				signal: config.signal,
+			})
+			return () => window.removeEventListener(event, handler as any)
+		}
+	}, [event, handler, config])
 }
 
 export function useBoundValue<T>(mapper: () => T, stores: Store<any>[]): T {
