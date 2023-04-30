@@ -1,6 +1,6 @@
 import { DependencyList, RefObject, useEffect, useMemo, useState } from "react"
 import isEqual from "react-fast-compare"
-import { BehaviorSubject, combineLatest, Subscription } from "rxjs"
+import { BehaviorSubject, Subscription, combineLatest } from "rxjs"
 
 export namespace CRT {
 	export enum Storage {
@@ -169,31 +169,22 @@ export class Store<T> {
 	}
 }
 
-export function onMount(callback: () => void | Promise<void>) {
+export function onMount(callback: () => any) {
 	useEffect(() => {
-		setTimeout(async () => {
-			await callback()
-		}, 0)
+		callback()
 	}, [])
 }
 
-export function onUpdate(
-	callback: () => void | Promise<void>,
-	dependencies: DependencyList
-) {
+export function onUpdate(callback: () => any, dependencies: DependencyList) {
 	useEffect(() => {
-		setTimeout(async () => {
-			await callback()
-		}, 0)
+		callback()
 	}, dependencies)
 }
 
-export function onUnmount(callback: () => void | Promise<void>) {
+export function onUnmount(callback: () => any) {
 	useEffect(() => {
 		return () => {
-			setTimeout(async () => {
-				await callback()
-			}, 0)
+			callback()
 		}
 	}, [])
 }
