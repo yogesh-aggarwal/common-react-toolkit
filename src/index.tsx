@@ -14,7 +14,7 @@ export namespace CRT {
 
 		storage: Storage
 		selfRecovery: boolean
-		onRecovery?: () => any
+		onJSONParseError?: () => any
 		storeIDMapper: (storeID: string) => string
 	}
 
@@ -25,6 +25,14 @@ export namespace CRT {
 
 		storage: Storage.LocalStorage,
 		storeIDMapper: (storeID) => storeID,
+	}
+
+	export function Clear() {
+		if (CONFIG.storage === Storage.LocalStorage) {
+			localStorage.clear()
+		} else if (CONFIG.storage === Storage.SessionStorage) {
+			sessionStorage.clear()
+		}
 	}
 
 	export function Config(config: Partial<Config_t>) {
@@ -49,7 +57,7 @@ namespace Storage {
 			try {
 				return JSON.parse(value)
 			} catch (e) {
-				const preventRecovery = CRT.CONFIG.onRecovery?.()
+				const preventRecovery = CRT.CONFIG.onJSONParseError?.()
 				if (!preventRecovery && CRT.CONFIG.selfRecovery) {
 					localStorage.removeItem(key)
 					sessionStorage.removeItem(key)
