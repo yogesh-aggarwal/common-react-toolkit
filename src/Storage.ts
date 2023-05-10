@@ -1,36 +1,26 @@
 import { DependencyList, useEffect, useMemo, useState } from "react"
 import isEqual from "react-fast-compare"
-import { BehaviorSubject, combineLatest, Subscription } from "rxjs"
+import { BehaviorSubject, Subscription, combineLatest } from "rxjs"
+import { CRT } from "."
+import { BasicStore } from "./BasicStore"
+import { onMount, onUnmount } from "./Hooks"
 
-export namespace CRT {
-	export enum Storage {
-		LocalStorage = "localStorage",
-		SessionStorage = "sessionStorage",
-	}
-
-	type Config_t = {
-		application: string
-		dbVersion: number
-
-		storage: Storage
-		selfRecovery: boolean
-		onRecovery?: () => any
-		storeIDMapper: (storeID: string) => string
-	}
-
-	export let CONFIG: Config_t = {
-		selfRecovery: false,
-		application: "CRT",
-		dbVersion: 1,
-
-		storage: Storage.LocalStorage,
-		storeIDMapper: (storeID) => storeID,
-	}
-
-	export function Config(config: Partial<Config_t>) {
-		CONFIG = { ...CONFIG, ...config }
-	}
+export type StoreCallbacks_t<T> = {
+	beforeUpdate?: (newState: T, prevState: T) => any | Promise<any>
+	afterUpdate?: (newState: T, prevState: T) => void | Promise<void>
 }
+
+export type StoreConfig_t = {
+	local: boolean
+	storeID: string
+	noCache: boolean
+}
+
+// prettier-ignore
+export type StoreHook<T> = <RT=T,>(
+	mapper?: (state: T) => RT,
+	dependencies?: DependencyList
+) => RT
 
 namespace Storage {
 	export function getItem(key: string): any {
@@ -49,7 +39,7 @@ namespace Storage {
 			try {
 				return JSON.parse(value)
 			} catch (e) {
-				const preventRecovery = CRT.CONFIG.onRecovery?.()
+				const preventRecovery = CRT.CONFIG.onJSONParseError?.()
 				if (!preventRecovery && CRT.CONFIG.selfRecovery) {
 					localStorage.removeItem(key)
 					sessionStorage.removeItem(key)
@@ -69,25 +59,8 @@ namespace Storage {
 	}
 }
 
-// prettier-ignore
-type StoreHook<T> = <RT=T,>(
-	mapper?: (state: T) => RT,
-	dependencies?: DependencyList
-) => RT
-
-export type StoreCallbacks_t<T> = {
-	beforeUpdate?: (newState: T, prevState: T) => any | Promise<any>
-	afterUpdate?: (newState: T, prevState: T) => void | Promise<void>
-}
-
-export type StoreConfig_t = {
-	local: boolean
-	storeID: string
-	noCache: boolean
-}
-
-export class Store<T> {
-	private _store: BehaviorSubject<T>
+export class Store<T> extends BasicStore<T> {
+	protected _store: BehaviorSubject<T>
 	private _callbacks: StoreCallbacks_t<T> = {}
 	private _storeID?: string
 	private _noCache?: boolean
@@ -105,6 +78,7 @@ export class Store<T> {
 		storeID?: string,
 		noCache?: boolean
 	) {
+		super()
 		let value: T = initialValue
 		if (storeID) {
 			this._storeID = this._prepareStoreID(storeID)
@@ -121,15 +95,6 @@ export class Store<T> {
 		return `[${CRT.CONFIG.application}.v${
 			CRT.CONFIG.dbVersion
 		}] ${CRT.CONFIG.storeIDMapper(storeID)}`
-	}
-
-	currentValue(): T {
-		const value = this._store.value
-		try {
-			return structuredClone(value)
-		} catch (e) {
-			return value
-		}
 	}
 
 	async set(newValue: T): Promise<void> {
@@ -159,82 +124,6 @@ export class Store<T> {
 		const mergedValue = { ...this._store.value, ...newValue }
 		if (!isEqual(mergedValue, this._store.value)) this.set(mergedValue)
 	}
-
-	subscribe(callback: (state: T) => void): Subscription {
-		return this._store.subscribe(callback)
-	}
-
-	unsubscribe() {
-		this._store.unsubscribe()
-	}
-}
-
-export function onMount(callback: () => void | Promise<void>) {
-	useEffect(() => {
-		setTimeout(async () => {
-			await callback()
-		}, 0)
-	}, [])
-}
-
-export function onUpdate(
-	callback: () => void | Promise<void>,
-	dependencies: DependencyList
-) {
-	useEffect(() => {
-		setTimeout(async () => {
-			await callback()
-		}, 0)
-	}, dependencies)
-}
-
-export function onUnmount(callback: () => void | Promise<void>) {
-	useEffect(() => {
-		return () => {
-			setTimeout(async () => {
-				await callback()
-			}, 0)
-		}
-	}, [])
-}
-
-export function onLifecycle(events: {
-	onMount: () => Promise<void>
-	onUnmount: () => Promise<void>
-	onUpdate?: { callback: () => Promise<void>; dependencies: DependencyList }
-}): void {
-	onMount(events.onMount)
-	onUnmount(events.onUnmount)
-	if (events.onUpdate)
-		onUpdate(events.onUpdate.callback, events.onUpdate.dependencies)
-}
-
-export function useBindEvent<T = Event>(
-	event: string,
-	handler: (e: T) => void,
-	passive?: boolean
-) {
-	useEffect(() => {
-		window.addEventListener(event, handler as any, { passive: passive })
-		return () => window.removeEventListener(event, handler as any)
-	}, [event, handler, passive])
-}
-
-export function useBoundValue<T>(mapper: () => T, stores: Store<any>[]): T {
-	const initialValue = useMemo(() => mapper(), [])
-	const [value, setValue] = useState(initialValue)
-
-	const [subscription, setSubscription] = useState<Subscription | null>(null)
-	onMount(() => {
-		setSubscription(
-			combineLatest(stores.map((store) => store.store)).subscribe(() => {
-				setValue(mapper())
-			})
-		)
-	})
-	onUnmount(() => subscription?.unsubscribe())
-
-	return value
 }
 
 export function makeStore<T>(
@@ -323,19 +212,4 @@ export function makeBoundStore<T>(
 	}
 
 	return [store, hook]
-}
-
-export function BindCallback(
-	callback: () => any | Promise<void>,
-	stores: Store<any>[]
-) {
-	for (const store of stores) store.subscribe(callback)
-}
-
-export function If(props: {
-	value: any
-	children: React.ReactNode
-}): React.ReactElement | null {
-	if (props.value) return <>{props.children}</>
-	return null
 }
