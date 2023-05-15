@@ -1,4 +1,4 @@
-import { makeIDBDatabaseStore } from "./Core/CRT/Database"
+import { makeIDBDatabaseStore } from "./Core/CRT"
 
 const [tasksStore, useTasks] = makeIDBDatabaseStore({
 	name: "tasks",
@@ -26,12 +26,26 @@ export default function App() {
 			</button>
 			<button
 				onClick={() => {
-					tasksStore.Update("1683695235624", {
-						id: 1683695235624,
-						name: "test2",
-						description: "test",
-						completed: false,
-					})
+					tasksStore.UpdateMany([
+						{
+							id: 1683695235624,
+							name: "test2",
+							description: "test",
+							completed: false,
+						},
+						{
+							id: 1683695235634,
+							name: "test3",
+							description: "test",
+							completed: false,
+						},
+						{
+							id: 1683695235644,
+							name: "test4",
+							description: "test",
+							completed: false,
+						},
+					])
 				}}
 			>
 				Update
