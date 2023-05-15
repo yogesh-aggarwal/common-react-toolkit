@@ -346,30 +346,15 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 		return this._store.value
 	}
 
-	async Create(data: T): Promise<void> {
-		if (!this._db) {
-			console.error(`[CRT] (${this._name}) Database not initialized`)
-		}
-		const key = (data as any)[this._key]
-		const objectStore = this.getObjectStore("readwrite")
-		if (!objectStore) return
-
-		const request = objectStore.add(data)
-		return new Promise<void>((resolve, reject) => {
-			request.onsuccess = async () => {
-				const newValue = { ...this._store.value, [key]: data }
-				this._store.next(newValue)
-				await this._callbacks.afterUpdate?.(newValue, this._store.value)
-				resolve()
-			}
-			request.onerror = () => {
-				console.error(`[CRT] (${this._name}) Error creating data`)
-				reject()
-			}
-		})
+	async Create(data: T, clear?: boolean): Promise<void> {
+		this.Update((data as any)[this._key], data, clear)
 	}
 
-	async Update(key: string, data: T): Promise<void> {
+	async CreateMany(data: T[], clear?: boolean): Promise<void> {
+		this.UpdateMany(data, clear)
+	}
+
+	async Update(key: string, data: T, clear?: boolean): Promise<void> {
 		if (!this._db) {
 			console.error(`[CRT] (${this._name}) Database not initialized`)
 		}
@@ -379,7 +364,7 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 		const request = objectStore.put(data)
 		return new Promise<void>((resolve, reject) => {
 			request.onsuccess = async () => {
-				const newValue = this._store.value
+				const newValue = clear ? {} : this._store.value
 				newValue[key] = data
 				this._store.next(newValue)
 				await this._callbacks.afterUpdate?.(newValue, this._store.value)
@@ -403,7 +388,6 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 		return new Promise<void>((resolve, reject) => {
 			for (const obj of data) tx.objectStore(this._name).put(obj)
 			tx.oncomplete = async () => {
-				console.log("FDfdw")
 				const newValue = clear ? {} : this._store.value
 				for (const obj of data) newValue[(obj as any)[this._key]] = obj
 				this._store.next(newValue)
@@ -417,7 +401,7 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 		})
 	}
 
-	async Delete(key: string) {
+	async Delete(key: string, clear?: boolean) {
 		if (!this._db) {
 			console.error(`[CRT] (${this._name}) Database not initialized`)
 		}
@@ -428,13 +412,37 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 		const request = objectStore.delete(key)
 		return new Promise<void>((resolve, reject) => {
 			request.onsuccess = async () => {
-				const newValue = { ...this._store.value }
+				const newValue = clear ? {} : { ...this._store.value }
 				delete newValue[key]
 				this._store.next(newValue)
 				await this._callbacks.afterUpdate?.(newValue, this._store.value)
 				resolve()
 			}
 			request.onerror = () => {
+				console.error(`[CRT] (${this._name}) Error deleting data`)
+				reject()
+			}
+		})
+	}
+
+	async DeleteMany(keys: string[], clear?: boolean) {
+		if (!this._db) {
+			console.error(`[CRT] (${this._name}) Database not initialized`)
+		}
+
+		const tx = this._db?.transaction(this._name, "readwrite")
+		if (!tx) return
+
+		return new Promise<void>((resolve, reject) => {
+			for (const key of keys) tx.objectStore(this._name).delete(key)
+			tx.oncomplete = async () => {
+				const newValue = clear ? {} : { ...this._store.value }
+				for (const key of keys) delete newValue[key]
+				this._store.next(newValue)
+				await this._callbacks.afterUpdate?.(newValue, this._store.value)
+				resolve()
+			}
+			tx.onerror = () => {
 				console.error(`[CRT] (${this._name}) Error deleting data`)
 				reject()
 			}
