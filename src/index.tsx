@@ -25,6 +25,12 @@ export abstract class BasicStore<T> {
 	unsubscribe() {
 		this._store.unsubscribe()
 	}
+
+	protected _prepareStoreID(storeID: string): string {
+		return `[${CRT.CONFIG.application}.v${
+			CRT.CONFIG.dbVersion
+		}] ${CRT.CONFIG.storeIDMapper(storeID)}`
+	}
 }
 
 export namespace CRT {
@@ -158,12 +164,6 @@ export class Store<T> extends BasicStore<T> {
 		}
 		this._store = new BehaviorSubject<T>(value)
 		this._callbacks = callbacks
-	}
-
-	private _prepareStoreID(storeID: string): string {
-		return `[${CRT.CONFIG.application}.v${
-			CRT.CONFIG.dbVersion
-		}] ${CRT.CONFIG.storeIDMapper(storeID)}`
 	}
 
 	async set(newValue: T): Promise<void> {
@@ -304,7 +304,7 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 		super()
 
 		this._key = key
-		this._name = name
+		this._name = this._prepareStoreID(name)
 		this._version = version
 		this._callbacks = callbacks
 
