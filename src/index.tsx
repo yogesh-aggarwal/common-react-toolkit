@@ -170,10 +170,17 @@ export class Store<T> extends BasicStore<T> {
 		if (newValue === undefined) newValue = null as any
 		if (isEqual(newValue, this._store.value)) return
 
+		let prevValue = this._store.value
+		try {
+			prevValue = structuredClone(this._store.value)
+		} catch {
+			prevValue = this._store.value
+		}
+
 		// Before update
 		const preventUpdate = await this._callbacks.beforeUpdate?.(
 			newValue,
-			this._store.value
+			prevValue
 		)
 		if (preventUpdate) return
 		// Update value
@@ -186,7 +193,7 @@ export class Store<T> extends BasicStore<T> {
 			Storage.setItem(this._storeID!, this._store.value)
 		}
 		// After update
-		await this._callbacks.afterUpdate?.(newValue, this._store.value)
+		await this._callbacks.afterUpdate?.(newValue, prevValue)
 	}
 
 	merge(newValue: Partial<T>): void {
@@ -311,7 +318,8 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 		const request = indexedDB.open(this._name, this._version)
 		request.onupgradeneeded = (idbEvent) => {
 			const db = (idbEvent.target as any).result as IDBDatabase
-			if (db.objectStoreNames.contains(this._name)) db.deleteObjectStore(this._name)
+			if (db.objectStoreNames.contains(this._name))
+				db.deleteObjectStore(this._name)
 			const objectStore = db.createObjectStore(this._name, { keyPath: key })
 			objectStore.createIndex(key, key, { unique: true })
 			callbacks.onDBCreateSuccess?.(db)
