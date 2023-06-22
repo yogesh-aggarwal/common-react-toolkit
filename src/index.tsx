@@ -83,6 +83,7 @@ export type StorageStoreConfig_t = {
 	local: boolean
 	storeID: string
 	noCache: boolean
+	disableComparison: boolean
 }
 
 // prettier-ignore
@@ -133,6 +134,7 @@ export class Store<T> extends BasicStore<T> {
 	private _callbacks: StorageStoreCallbacks_t<T> = {}
 	private _storeID?: string
 	private _noCache?: boolean
+	private _disableComparison?: boolean
 
 	get storeID() {
 		return this._storeID
@@ -145,7 +147,8 @@ export class Store<T> extends BasicStore<T> {
 		initialValue: T,
 		callbacks: StorageStoreCallbacks_t<T>,
 		storeID?: string,
-		noCache?: boolean
+		noCache?: boolean,
+		disableComparison?: boolean
 	) {
 		super()
 		let value: T = initialValue
@@ -158,6 +161,8 @@ export class Store<T> extends BasicStore<T> {
 		}
 		this._store = new BehaviorSubject<T>(value)
 		this._callbacks = callbacks
+		this._noCache = noCache
+		this._disableComparison = disableComparison
 	}
 
 	private _prepareStoreID(storeID: string): string {
@@ -168,7 +173,7 @@ export class Store<T> extends BasicStore<T> {
 
 	async set(newValue: T): Promise<void> {
 		if (newValue === undefined) newValue = null as any
-		if (isEqual(newValue, this._store.value)) return
+		if (!this._disableComparison && isEqual(newValue, this._store.value)) return
 
 		// Before update
 		const preventUpdate = await this._callbacks.beforeUpdate?.(
@@ -204,7 +209,8 @@ export function makeStore<T>(
 		initialValue,
 		callbacks ? callbacks : {},
 		config?.storeID,
-		config?.noCache
+		config?.noCache,
+		config?.disableComparison
 	)
 
 	// prettier-ignore
@@ -264,7 +270,7 @@ export function makeBoundStore<T>(
 				combineLatest(stores.map((store) => store.store)).subscribe(() => {
 					const newState = mapper(valueMapper())
 					setState((prevState: any) => {
-						if (isEqual(prevState, newState)) return prevState
+						if (!options?.disableComparison && isEqual(prevState, newState)) return prevState
 						return newState
 					})
 				})
@@ -474,7 +480,12 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 }
 
 export function makeIDBDatabaseStore<T>(
-	config: { name: string; key: string; version: number },
+	config: {
+		name: string
+		key: string
+		version: number
+		disableComparison?: boolean
+	},
 	callbacks?: IDBStoreCallbacks_t<T>
 ): [IDBCollectionStore<T>, StoreHook<IDBStoreValue_t<T>>] {
 	const store = new IDBCollectionStore<T>(
@@ -498,7 +509,7 @@ export function makeIDBDatabaseStore<T>(
 				store.subscribe((newState: IDBStoreValue_t<T>) => {
 					newState = mapper(newState) as any
 					setState((prevState: any) => {
-						if (isEqual(prevState, newState)) return prevState
+						if (!config.disableComparison && isEqual(prevState, newState)) return prevState
 						return newState
 					})
 				})
