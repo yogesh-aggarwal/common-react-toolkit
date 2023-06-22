@@ -25,6 +25,12 @@ export abstract class BasicStore<T> {
 	unsubscribe() {
 		this._store.unsubscribe()
 	}
+
+	protected _prepareStoreID(storeID: string): string {
+		return `[${CRT.CONFIG.application}.v${
+			CRT.CONFIG.dbVersion
+		}] ${CRT.CONFIG.storeIDMapper(storeID)}`
+	}
 }
 
 export namespace CRT {
@@ -165,20 +171,21 @@ export class Store<T> extends BasicStore<T> {
 		this._disableComparison = disableComparison
 	}
 
-	private _prepareStoreID(storeID: string): string {
-		return `[${CRT.CONFIG.application}.v${
-			CRT.CONFIG.dbVersion
-		}] ${CRT.CONFIG.storeIDMapper(storeID)}`
-	}
-
 	async set(newValue: T): Promise<void> {
 		if (newValue === undefined) newValue = null as any
 		if (!this._disableComparison && isEqual(newValue, this._store.value)) return
 
+		let prevValue = this._store.value
+		try {
+			prevValue = structuredClone(this._store.value)
+		} catch {
+			prevValue = this._store.value
+		}
+
 		// Before update
 		const preventUpdate = await this._callbacks.beforeUpdate?.(
 			newValue,
-			this._store.value
+			prevValue
 		)
 		if (preventUpdate) return
 		// Update value
@@ -191,7 +198,7 @@ export class Store<T> extends BasicStore<T> {
 			Storage.setItem(this._storeID!, this._store.value)
 		}
 		// After update
-		await this._callbacks.afterUpdate?.(newValue, this._store.value)
+		await this._callbacks.afterUpdate?.(newValue, prevValue)
 	}
 
 	merge(newValue: Partial<T>): void {
@@ -310,22 +317,23 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 		super()
 
 		this._key = key
-		this._name = name
+		this._name = this._prepareStoreID(name)
 		this._version = version
 		this._callbacks = callbacks
 
-		const request = indexedDB.open(name, this._version)
+		const request = indexedDB.open(this._name, this._version)
 		request.onupgradeneeded = (idbEvent) => {
 			const db = (idbEvent.target as any).result as IDBDatabase
-			if (db.objectStoreNames.contains(name)) db.deleteObjectStore(name)
-			const objectStore = db.createObjectStore(name, { keyPath: key })
+			if (db.objectStoreNames.contains(this._name))
+				db.deleteObjectStore(this._name)
+			const objectStore = db.createObjectStore(this._name, { keyPath: key })
 			objectStore.createIndex(key, key, { unique: true })
 			callbacks.onDBCreateSuccess?.(db)
 		}
 		request.onsuccess = (idbEvent) => {
 			this._db = (idbEvent.target as any).result as IDBDatabase
-			const transaction = this._db.transaction(name, "readonly")
-			const objectStore = transaction.objectStore(name)
+			const transaction = this._db.transaction(this._name, "readonly")
+			const objectStore = transaction.objectStore(this._name)
 
 			const request = objectStore.getAll()
 			request.onerror = () => {
