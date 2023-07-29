@@ -257,7 +257,7 @@ export function makeStore<T>(
 export function makeBoundStore<T>(
 	initialValue: T,
 	valueMapper: () => T,
-	stores: Store<any>[],
+	stores: BasicStore<any>[],
 	callbacks?: StorageStoreCallbacks_t<T>,
 	options?: Partial<StorageStoreConfig_t>
 ): [Store<T>, StoreHook<T>] {
@@ -604,7 +604,7 @@ export function useBindEvent<T = Event>(
 
 export function useBoundValue<T>(
 	mapper: () => T,
-	stores: (Store<any> | IDBCollectionStore<any>)[]
+	stores: (BasicStore<any> | IDBCollectionStore<any>)[]
 ): T {
 	const initialValue = useMemo(() => mapper(), [])
 	const [value, setValue] = useState(initialValue)
@@ -624,7 +624,7 @@ export function useBoundValue<T>(
 
 export function BindCallback(
 	callback: () => any | Promise<void>,
-	stores: (Store<any> | IDBCollectionStore<any>)[]
+	stores: (BasicStore<any> | IDBCollectionStore<any>)[]
 ) {
 	for (const store of stores) store.subscribe(callback)
 }
