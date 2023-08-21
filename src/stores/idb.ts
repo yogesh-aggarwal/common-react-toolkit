@@ -120,7 +120,7 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 		if (!tx) return
 
 		return new Promise<void>((resolve, reject) => {
-			const newValue = clear ? {} : this._store.value
+			const newValue = clear ? {} : { ...this._store.value }
 			for (const obj of data) newValue[(obj as any)[this._key]] = obj
 			this._store.next(newValue)
 			this._callbacks.afterUpdate?.(newValue, this._store.value)
