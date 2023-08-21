@@ -377,11 +377,12 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 
 		const request = objectStore.put(data)
 		return new Promise<void>((resolve, reject) => {
+			const newValue = clear ? {} : this._store.value
+			newValue[key] = data
+			this._store.next(newValue)
+			this._callbacks.afterUpdate?.(newValue, this._store.value)
+
 			request.onsuccess = async () => {
-				const newValue = clear ? {} : this._store.value
-				newValue[key] = data
-				this._store.next(newValue)
-				await this._callbacks.afterUpdate?.(newValue, this._store.value)
 				resolve()
 			}
 			request.onerror = () => {
@@ -424,13 +425,12 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 
 		const request = objectStore.delete(key)
 		return new Promise<void>((resolve, reject) => {
-			request.onsuccess = async () => {
-				const newValue = clear ? {} : { ...this._store.value }
-				delete newValue[key]
-				this._store.next(newValue)
-				await this._callbacks.afterUpdate?.(newValue, this._store.value)
-				resolve()
-			}
+			const newValue = clear ? {} : { ...this._store.value }
+			delete newValue[key]
+			this._store.next(newValue)
+			this._callbacks.afterUpdate?.(newValue, this._store.value)
+
+			request.onsuccess = () => resolve()
 			request.onerror = () => {
 				console.error(`[CRT] (${this._name}) Error deleting data`)
 				reject()
@@ -447,12 +447,13 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 		if (!tx) return
 
 		return new Promise<void>((resolve, reject) => {
+			const newValue = clear ? {} : { ...this._store.value }
+			for (const key of keys) delete newValue[key]
+			this._store.next(newValue)
+			this._callbacks.afterUpdate?.(newValue, this._store.value)
+
 			for (const key of keys) tx.objectStore(this._name).delete(key)
 			tx.oncomplete = async () => {
-				const newValue = clear ? {} : { ...this._store.value }
-				for (const key of keys) delete newValue[key]
-				this._store.next(newValue)
-				await this._callbacks.afterUpdate?.(newValue, this._store.value)
 				resolve()
 			}
 			tx.onerror = () => {
