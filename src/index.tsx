@@ -400,14 +400,13 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 		if (!tx) return
 
 		return new Promise<void>((resolve, reject) => {
+			const newValue = clear ? {} : this._store.value
+			for (const obj of data) newValue[(obj as any)[this._key]] = obj
+			this._store.next(newValue)
+			this._callbacks.afterUpdate?.(newValue, this._store.value)
+
 			for (const obj of data) tx.objectStore(this._name).put(obj)
-			tx.oncomplete = async () => {
-				const newValue = clear ? {} : this._store.value
-				for (const obj of data) newValue[(obj as any)[this._key]] = obj
-				this._store.next(newValue)
-				await this._callbacks.afterUpdate?.(newValue, this._store.value)
-				resolve()
-			}
+			tx.oncomplete = () => resolve()
 			tx.onerror = () => {
 				console.error(`[CRT] (${this._name}) Error updating data`)
 				reject()
