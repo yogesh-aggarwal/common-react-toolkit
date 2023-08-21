@@ -9,12 +9,7 @@ export abstract class BasicStore<T> {
 	}
 
 	value(): T {
-		const value = this._store.value
-		try {
-			return Object.freeze(value)
-		} catch (e) {
-			return value
-		}
+		return Object.freeze(this._store.value)
 	}
 
 	/**
