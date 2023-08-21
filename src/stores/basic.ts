@@ -1,5 +1,5 @@
 import { BehaviorSubject, Subscription } from "rxjs"
-import { CRT } from "./common"
+import { CRT } from "../core/common"
 
 export abstract class BasicStore<T> {
 	protected abstract _store: BehaviorSubject<T>
@@ -15,6 +15,13 @@ export abstract class BasicStore<T> {
 		} catch (e) {
 			return value
 		}
+	}
+
+	/**
+	 * @deprecated
+	 */
+	currentValue(): T {
+		return this.value()
 	}
 
 	subscribe(callback: (state: T) => void): Subscription {

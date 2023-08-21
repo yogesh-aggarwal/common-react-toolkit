@@ -1,8 +1,8 @@
 import { DependencyList, useEffect, useMemo, useState } from "react"
 import isEqual from "react-fast-compare"
 import { BehaviorSubject, Subscription } from "rxjs"
-import { BasicStore } from "./basicStore"
-import { onMount, onUnmount } from "./hooks"
+import { onMount, onUnmount } from "../core/hooks"
+import { BasicStore } from "./basic"
 
 type IDBStoreValue_t<T> = { [key: string]: T }
 export type IDBStoreCallbacks_t<T> = {
@@ -25,8 +25,7 @@ export type StorageStoreConfig_t = {
 	disableComparison: boolean
 }
 
-// prettier-ignore
-export type StoreHook<T> = <RT=T,>(
+export type StoreHook<T> = <RT = T>(
 	mapper?: (state: T) => RT,
 	dependencies?: DependencyList
 ) => RT
@@ -96,37 +95,15 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 	}
 
 	async Create(data: T, clear?: boolean): Promise<void> {
-		this.Update((data as any)[this._key], data, clear)
+		this.Update(data, clear)
 	}
-
 	async CreateMany(data: T[], clear?: boolean): Promise<void> {
 		this.UpdateMany(data, clear)
 	}
 
-	async Update(key: string, data: T, clear?: boolean): Promise<void> {
-		if (!this._db) {
-			console.error(`[CRT] (${this._name}) Database not initialized`)
-		}
-		const objectStore = this.getObjectStore("readwrite")
-		if (!objectStore) return
-
-		const request = objectStore.put(data)
-		return new Promise<void>((resolve, reject) => {
-			const newValue = clear ? {} : this._store.value
-			newValue[key] = data
-			this._store.next(newValue)
-			this._callbacks.afterUpdate?.(newValue, this._store.value)
-
-			request.onsuccess = async () => {
-				resolve()
-			}
-			request.onerror = () => {
-				console.error(`[CRT] (${this._name}) Error updating data`)
-				reject()
-			}
-		})
+	async Update(data: T, clear?: boolean): Promise<void> {
+		this.UpdateMany([data], clear)
 	}
-
 	async UpdateMany(data: T[], clear?: boolean): Promise<void> {
 		if (!this._db) {
 			console.error(`[CRT] (${this._name}) Database not initialized`)
@@ -151,28 +128,8 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 	}
 
 	async Delete(key: string, clear?: boolean) {
-		if (!this._db) {
-			console.error(`[CRT] (${this._name}) Database not initialized`)
-		}
-
-		const objectStore = this.getObjectStore("readwrite")
-		if (!objectStore) return
-
-		const request = objectStore.delete(key)
-		return new Promise<void>((resolve, reject) => {
-			const newValue = clear ? {} : { ...this._store.value }
-			delete newValue[key]
-			this._store.next(newValue)
-			this._callbacks.afterUpdate?.(newValue, this._store.value)
-
-			request.onsuccess = () => resolve()
-			request.onerror = () => {
-				console.error(`[CRT] (${this._name}) Error deleting data`)
-				reject()
-			}
-		})
+		this.DeleteMany([key], clear)
 	}
-
 	async DeleteMany(keys: string[], clear?: boolean) {
 		if (!this._db) {
 			console.error(`[CRT] (${this._name}) Database not initialized`)
@@ -238,21 +195,21 @@ export function makeIDBDatabaseStore<T>(
 		callbacks ?? {}
 	)
 
-	// prettier-ignore
-	const hook = <RT=T,>(
+	const hook = <RT = T>(
 		mapper: (state: IDBStoreValue_t<T>) => RT = (x) => x as any,
 		dependencies?: DependencyList
 	): RT => {
-      const value = useMemo(() => mapper(store.value()), [])
+		const value = useMemo(() => mapper(store.value()), [])
 		const [state, setState] = useState<RT>(value)
 
-		const [subscription, setSubscription] = useState<Subscription | null>(null)      
+		const [subscription, setSubscription] = useState<Subscription | null>(null)
 		onMount(() => {
 			setSubscription(
 				store.subscribe((newState: IDBStoreValue_t<T>) => {
 					newState = mapper(newState) as any
 					setState((prevState: any) => {
-						if (!config.disableComparison && isEqual(prevState, newState)) return prevState
+						if (!config.disableComparison && isEqual(prevState, newState))
+							return prevState
 						return newState
 					})
 				})

@@ -85,8 +85,7 @@ export type StorageStoreConfig_t = {
 	noCache: boolean
 }
 
-// prettier-ignore
-export type StoreHook<T> = <RT=T,>(
+export type StoreHook<T> = <RT = T>(
 	mapper?: (state: T) => RT,
 	dependencies?: DependencyList
 ) => RT

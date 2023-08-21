@@ -1,15 +1,15 @@
 import { DependencyList, useEffect, useMemo, useState } from "react"
 import isEqual from "react-fast-compare"
 import { Subscription, combineLatest } from "rxjs"
-import { BasicStore } from "./basicStore"
-import { onMount, onUnmount } from "./hooks"
+import { BasicStore } from "../stores/basic"
 import {
 	IDBCollectionStore,
 	StorageStoreCallbacks_t,
 	StorageStoreConfig_t,
 	StoreHook,
-} from "./idb"
-import { Store, makeStore } from "./store"
+} from "../stores/idb"
+import { Store, makeStore } from "../stores/storage"
+import { onMount, onUnmount } from "./hooks"
 
 export function BindCallback(
 	callback: () => any | Promise<void>,
@@ -27,12 +27,11 @@ export function makeBoundStore<T>(
 ): [Store<T>, StoreHook<T>] {
 	const [store] = makeStore<T>(initialValue, callbacks, options)
 
-	// prettier-ignore
-	const hook = <RT=T,>(
+	const hook = <RT = T>(
 		mapper: (state: T) => RT = (x) => x as any,
 		dependencies?: DependencyList
 	): RT => {
-      const value = useMemo(() => mapper(valueMapper()), [])
+		const value = useMemo(() => mapper(valueMapper()), [])
 		const [state, setState] = useState<RT>(value)
 
 		const [subscription, setSubscription] = useState<Subscription | null>(null)
@@ -41,7 +40,8 @@ export function makeBoundStore<T>(
 				combineLatest(stores.map((store) => store.store)).subscribe(() => {
 					const newState = mapper(valueMapper())
 					setState((prevState: any) => {
-						if (!options?.disableComparison && isEqual(prevState, newState)) return prevState
+						if (!options?.disableComparison && isEqual(prevState, newState))
+							return prevState
 						return newState
 					})
 				})

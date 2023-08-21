@@ -1,7 +1,7 @@
 import { DependencyList, RefObject, useEffect, useMemo, useState } from "react"
 import { Subscription, combineLatest } from "rxjs"
-import { BasicStore } from "./basicStore"
-import { IDBCollectionStore } from "./idb"
+import { BasicStore } from "../stores/basic"
+import { IDBCollectionStore } from "../stores/idb"
 
 export function onMount(callback: () => any) {
 	useEffect(() => {

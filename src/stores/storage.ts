@@ -1,9 +1,9 @@
 import { DependencyList, useEffect, useMemo, useState } from "react"
 import isEqual from "react-fast-compare"
 import { BehaviorSubject, Subscription } from "rxjs"
-import { BasicStore } from "./basicStore"
-import { CRT } from "./common"
-import { onMount, onUnmount } from "./hooks"
+import { CRT } from "../core/common"
+import { onMount, onUnmount } from "../core/hooks"
+import { BasicStore } from "./basic"
 import { StorageStoreCallbacks_t, StorageStoreConfig_t, StoreHook } from "./idb"
 
 namespace Storage {
@@ -128,16 +128,15 @@ export function makeStore<T>(
 		config?.disableComparison
 	)
 
-	// prettier-ignore
-	const hook = <RT=T,>(
+	const hook = <RT = T>(
 		mapper: (state: T) => RT = (x) => x as any,
 		dependencies?: DependencyList
 	): RT => {
-      const value = useMemo(() => mapper(store.value()), [])
+		const value = useMemo(() => mapper(store.value()), [])
 		const [state, setState] = useState<RT>(value)
-      if (config?.local) onUnmount(() => store.set(initialValue))
+		if (config?.local) onUnmount(() => store.set(initialValue))
 
-		const [subscription, setSubscription] = useState<Subscription | null>(null)      
+		const [subscription, setSubscription] = useState<Subscription | null>(null)
 		onMount(() => {
 			setSubscription(
 				store.subscribe((newState: T) => {
