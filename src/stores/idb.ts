@@ -90,7 +90,7 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 		return objectStore
 	}
 
-	value(config?: { clone?: boolean }) {
+	value(config?: { clone?: boolean }): IDBStoreValue_t<T> {
 		if (config?.clone) return structuredClone(this._store.value)
 		return Object.freeze(this._store.value)
 	}
