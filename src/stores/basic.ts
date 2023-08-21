@@ -9,7 +9,13 @@ export abstract class BasicStore<T> {
 	}
 
 	value(config?: { clone?: boolean }): T {
-		if (config?.clone) return structuredClone(this._store.value)
+		if (config?.clone) {
+			try {
+				return structuredClone(this._store.value)
+			} catch {
+				return this._store.value
+			}
+		}
 		return Object.freeze(this._store.value)
 	}
 
