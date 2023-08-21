@@ -90,8 +90,9 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 		return objectStore
 	}
 
-	value() {
-		return this._store.value
+	value(config?: { clone?: boolean }) {
+		if (config?.clone) return structuredClone(this._store.value)
+		return Object.freeze(this._store.value)
 	}
 
 	async Create(data: T, clear?: boolean): Promise<void> {

@@ -8,7 +8,8 @@ export abstract class BasicStore<T> {
 		return this._store
 	}
 
-	value(): T {
+	value(config?: { clone?: boolean }): T {
+		if (config?.clone) return structuredClone(this._store.value)
 		return Object.freeze(this._store.value)
 	}
 
