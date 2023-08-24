@@ -111,6 +111,10 @@ export class WorkerStore<RT = any, MT = any> extends BasicStore<RT> {
 		this._callbacks.onInitialized?.()
 	}
 
+	public initialize() {
+		this.setupWorker()
+	}
+
 	public terminate() {
 		const worker = WorkerStore._workers.get(this._workerURL)
 		if (!worker) {
