@@ -1,70 +1,38 @@
-import { makeIDBDatabaseStore } from "./Core/CRT"
+import { makeStore, makeWorkerStore } from "./CRT"
 
-const [tasksStore, useTasks] = makeIDBDatabaseStore({
-	name: "tasks",
-	key: "id",
-	version: 4,
-})
+const [tasksStore, useTasks] = makeStore<string[]>([], {}, { storeID: "ID" })
+const [workerStore] = makeWorkerStore<string[]>(
+	[],
+	"CRT Worker",
+	"/worker.js",
+	{
+		onResponse: (message) => {
+			tasksStore.set(message)
+		},
+	},
+	{ inheritStore: tasksStore }
+)
 
 export default function App() {
+	const value = useTasks((tasks) => tasks.join(", "))
+
 	return (
 		<div>
 			<button
 				onClick={() => {
-					for (let i = 0; i < 1000; i++) {
-						console.log("Ddwdw")
-						tasksStore.Create({
-							id: Date.now() + i,
-							name: "test " + i,
-							description: "test",
-							completed: false,
-						})
-					}
+					tasksStore.set(["helloooooo"])
 				}}
 			>
-				Add
+				Tasks store
 			</button>
 			<button
 				onClick={() => {
-					tasksStore.UpdateMany([
-						{
-							id: 1683695235624,
-							name: "test2",
-							description: "test",
-							completed: false,
-						},
-						{
-							id: 1683695235634,
-							name: "test3",
-							description: "test",
-							completed: false,
-						},
-						{
-							id: 1683695235644,
-							name: "test4",
-							description: "test",
-							completed: false,
-						},
-					])
+					workerStore.postMessage(["hello", "world"])
 				}}
 			>
-				Update
+				Click me
 			</button>
-			<button
-				onClick={() => {
-					tasksStore.Delete("1683695235624")
-				}}
-			>
-				Delete
-			</button>
-			<button
-				onClick={() => {
-					tasksStore.Clear()
-				}}
-			>
-				Delete all
-			</button>
-			{/* <pre>{JSON.stringify(tasks, null, 2)}</pre> */}
+			{value}
 		</div>
 	)
 }

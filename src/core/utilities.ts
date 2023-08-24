@@ -8,7 +8,7 @@ import {
 	StorageStoreConfig_t,
 	StoreHook,
 } from "../stores/idb"
-import { Store, makeStore } from "../stores/storage"
+import { StorageStore, makeStore } from "../stores/storage"
 import { onMount, onUnmount } from "./hooks"
 
 export function BindCallback(
@@ -24,7 +24,7 @@ export function makeBoundStore<T>(
 	stores: BasicStore<any>[],
 	callbacks?: StorageStoreCallbacks_t<T>,
 	options?: Partial<StorageStoreConfig_t>
-): [Store<T>, StoreHook<T>] {
+): [StorageStore<T>, StoreHook<T>] {
 	const [store] = makeStore<T>(initialValue, callbacks, options)
 
 	const hook = <RT = T>(

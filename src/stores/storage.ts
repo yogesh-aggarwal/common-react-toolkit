@@ -3,8 +3,19 @@ import isEqual from "react-fast-compare"
 import { BehaviorSubject, Subscription } from "rxjs"
 import { CRT } from "../core/common"
 import { onMount, onUnmount } from "../core/hooks"
-import { BasicStore } from "./basic"
-import { StorageStoreCallbacks_t, StorageStoreConfig_t, StoreHook } from "./idb"
+import { BasicStore, StoreHook } from "./basic"
+
+export type StorageStoreCallbacks_t<T> = {
+	beforeUpdate?: (newState: T, prevState: T) => any | Promise<any>
+	afterUpdate?: (newState: T, prevState: T) => void | Promise<void>
+}
+
+export type StorageStoreConfig_t = {
+	local: boolean
+	storeID: string
+	noCache: boolean
+	disableComparison: boolean
+}
 
 namespace Storage {
 	export function getItem(key: string): any {
@@ -43,7 +54,7 @@ namespace Storage {
 	}
 }
 
-export class Store<T> extends BasicStore<T> {
+export class StorageStore<T> extends BasicStore<T> {
 	protected _store: BehaviorSubject<T>
 	private _callbacks: StorageStoreCallbacks_t<T> = {}
 	private _storeID?: string
@@ -83,12 +94,7 @@ export class Store<T> extends BasicStore<T> {
 		if (newValue === undefined) newValue = null as any
 		if (!this._disableComparison && isEqual(newValue, this._store.value)) return
 
-		let prevValue = this._store.value
-		try {
-			prevValue = structuredClone(this._store.value)
-		} catch {
-			prevValue = this._store.value
-		}
+		const prevValue = Object.freeze(this._store.value)
 
 		// Before update
 		const preventUpdate = await this._callbacks.beforeUpdate?.(
@@ -119,8 +125,8 @@ export function makeStore<T>(
 	initialValue: T,
 	callbacks?: StorageStoreCallbacks_t<T>,
 	config?: Partial<StorageStoreConfig_t>
-): [Store<T>, StoreHook<T>] {
-	const store = new Store<T>(
+): [StorageStore<T>, StoreHook<T>] {
+	const store = new StorageStore<T>(
 		initialValue,
 		callbacks ? callbacks : {},
 		config?.storeID,

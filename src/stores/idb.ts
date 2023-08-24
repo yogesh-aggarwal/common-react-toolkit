@@ -2,9 +2,9 @@ import { DependencyList, useEffect, useMemo, useState } from "react"
 import isEqual from "react-fast-compare"
 import { BehaviorSubject, Subscription } from "rxjs"
 import { onMount, onUnmount } from "../core/hooks"
-import { BasicStore } from "./basic"
+import { BasicStore, StoreHook } from "./basic"
 
-type IDBStoreValue_t<T> = { [key: string]: T }
+export type IDBStoreValue_t<T> = { [key: string]: T }
 export type IDBStoreCallbacks_t<T> = {
 	afterUpdate?: (
 		newState: IDBStoreValue_t<T>,
@@ -13,22 +13,6 @@ export type IDBStoreCallbacks_t<T> = {
 	onDBCreateSuccess?: (db: IDBDatabase) => void | Promise<void>
 	onDBCreateFail?: () => void | Promise<void>
 }
-
-export type StorageStoreCallbacks_t<T> = {
-	beforeUpdate?: (newState: T, prevState: T) => any | Promise<any>
-	afterUpdate?: (newState: T, prevState: T) => void | Promise<void>
-}
-export type StorageStoreConfig_t = {
-	local: boolean
-	storeID: string
-	noCache: boolean
-	disableComparison: boolean
-}
-
-export type StoreHook<T> = <RT = T>(
-	mapper?: (state: T) => RT,
-	dependencies?: DependencyList
-) => RT
 
 export class IDBCollectionStore<T = any> extends BasicStore<
 	IDBStoreValue_t<T>
@@ -113,7 +97,7 @@ export class IDBCollectionStore<T = any> extends BasicStore<
 	}
 	async UpdateMany(data: T[], clear?: boolean): Promise<void> {
 		if (!this._db) {
-			console.error(`[CRT] (${this._name}) Database not initialized`)
+			console.error(`[CRT] (${this._name}) Database not initialized.`)
 		}
 
 		const tx = this._db?.transaction(this._name, "readwrite")

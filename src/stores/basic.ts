@@ -1,5 +1,11 @@
+import { DependencyList } from "react"
 import { BehaviorSubject, Subscription } from "rxjs"
 import { CRT } from "../core/common"
+
+export type StoreHook<T> = <RT = T>(
+	mapper?: (state: T) => RT,
+	dependencies?: DependencyList
+) => RT
 
 export abstract class BasicStore<T> {
 	protected abstract _store: BehaviorSubject<T>
