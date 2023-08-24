@@ -150,7 +150,7 @@ export function makeWorkerStore<RT = any, MT = any>(
 	workerURL: string,
 	callbacks?: WorkerStoreCallbacks_t<RT, MT>,
 	config?: Partial<WorkerStoreConfig_t<RT>>
-): [WorkerStore<RT>, StoreHook<RT>] {
+): [WorkerStore<RT, MT>, StoreHook<RT>] {
 	const store = new WorkerStore<RT, MT>(
 		initialValue,
 		callbacks ? callbacks : {},
