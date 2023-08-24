@@ -6,7 +6,8 @@
       "build": "rm -rf lib && npx tsc",
       "test": "echo \"Error: no test specified\"",
       "amend": "git add . && git commit --amend --no-edit && git push origin main -f",
-      "gh-publish": "git push origin main && git branch -D publish && git checkout -b publish && git push origin publish -f && git checkout main",
+      "ts-check": "npx tsc --noEmit",
+      "gh-publish": "git push origin main && npm run ts-check && git branch -D publish && git checkout -b publish && git push origin publish -f && git checkout main",
       "local-publish": "npm ci && npm run build && npm publish"
    },
    "keywords": [

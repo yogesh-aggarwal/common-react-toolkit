@@ -1,14 +1,14 @@
 import { DependencyList, useEffect, useMemo, useState } from "react"
 import isEqual from "react-fast-compare"
 import { Subscription, combineLatest } from "rxjs"
-import { BasicStore } from "../stores/basic"
+import { BasicStore, StoreHook } from "../stores/basic"
+import { IDBCollectionStore } from "../stores/idb"
 import {
-	IDBCollectionStore,
+	StorageStore,
 	StorageStoreCallbacks_t,
 	StorageStoreConfig_t,
-	StoreHook,
-} from "../stores/idb"
-import { StorageStore, makeStore } from "../stores/storage"
+	makeStore,
+} from "../stores/storage"
 import { onMount, onUnmount } from "./hooks"
 
 export function BindCallback(
