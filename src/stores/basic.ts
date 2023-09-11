@@ -12,7 +12,7 @@ export abstract class BasicStore<T> {
       return this._store
    }
 
-   abstract reset(): Promise<void>
+   abstract reset(): any
 
    initialValue(): T {
       return Object.freeze(this._initialValue)

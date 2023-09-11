@@ -31,6 +31,7 @@ export class WorkerStore<RT = any, MT = any> extends BasicStore<RT> {
    private _credentials: RequestCredentials
    private _callbacks: WorkerStoreCallbacks_t<RT, MT> = {}
    private _inheritStore?: BasicStore<RT>
+   protected _initialValue: RT
 
    private static _workers: Map<string, Worker> = new Map()
 
@@ -58,10 +59,15 @@ export class WorkerStore<RT = any, MT = any> extends BasicStore<RT> {
       this._inheritStore = inheritStore
       this._credentials = credentials ?? "same-origin"
       this._disableComparison = disableComparison
+      this._initialValue = initialValue
 
       this._store = new BehaviorSubject<RT>(this._inheritStore?.value() ?? initialValue)
 
       this.setupWorker()
+   }
+
+   reset() {
+      this._store.next(this._initialValue)
    }
 
    private setupWorker() {
