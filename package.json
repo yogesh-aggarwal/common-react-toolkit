@@ -1,12 +1,13 @@
 {
    "name": "common-react-toolkit",
-   "version": "8.0.3",
+   "version": "8.1.0",
    "description": "Toolkit of common React things to make developer's life a bit easier.",
    "scripts": {
       "build": "rm -rf lib && npx tsc",
       "test": "echo \"Error: no test specified\"",
       "amend": "git add . && git commit --amend --no-edit && git push origin main -f",
       "ts-check": "npx tsc --noEmit",
+      "pretty": "prettier --config .prettierrc --write ./src/**/*.{ts,tsx,json,scss}",
       "gh-publish": "git push origin main && npm run ts-check && git branch -D publish && git checkout -b publish && git push origin publish -f && git checkout main",
       "local-publish": "npm ci && npm run build && npm publish"
    },
@@ -29,6 +30,7 @@
       "rxjs": "^7.5.5"
    },
    "devDependencies": {
+      "prettier": "^3.0.3",
       "typescript": "^4.9.4"
    },
    "files": [
