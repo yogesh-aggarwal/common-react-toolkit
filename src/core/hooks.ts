@@ -79,7 +79,7 @@ export function useBindEvent<T = Event>(
 export function useBoundValue<T>(
    mapper: () => T,
    stores: (BasicStore<any> | IDBCollectionStore<any>)[],
-   dependencies?: DependencyList[]
+   dependencies?: DependencyList
 ): T {
    const initialValue = useMemo(() => mapper(), [])
    const [value, setValue] = useState(initialValue)
