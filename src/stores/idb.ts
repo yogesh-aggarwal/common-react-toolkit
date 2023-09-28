@@ -194,10 +194,9 @@ export function makeIDBDatabaseStore<T>(
       })
       onUnmount(() => subscription?.unsubscribe())
 
-      if (mapper && dependencies)
-         useEffect(() => {
-            setState(mapper(store.value()) as any)
-         }, dependencies)
+      useEffect(() => {
+         setState(mapper(store.value()) as any)
+      }, dependencies ?? [])
 
       return state
    }

@@ -178,10 +178,9 @@ export function makeWorkerStore<RT = any, MT = any>(
       })
       onUnmount(() => subscription?.unsubscribe())
 
-      if (mapper && dependencies)
-         useEffect(() => {
-            setState(mapper(store.value()) as any)
-         }, dependencies)
+      useEffect(() => {
+         setState(mapper(store.value()) as any)
+      }, dependencies ?? [])
 
       return state
    }
