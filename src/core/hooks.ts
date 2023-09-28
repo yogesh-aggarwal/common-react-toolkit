@@ -76,7 +76,11 @@ export function useBindEvent<T = Event>(
    }, [event, handler, config])
 }
 
-export function useBoundValue<T>(mapper: () => T, stores: (BasicStore<any> | IDBCollectionStore<any>)[]): T {
+export function useBoundValue<T>(
+   mapper: () => T,
+   stores: (BasicStore<any> | IDBCollectionStore<any>)[],
+   dependencies?: DependencyList[]
+): T {
    const initialValue = useMemo(() => mapper(), [])
    const [value, setValue] = useState(initialValue)
 
@@ -89,6 +93,10 @@ export function useBoundValue<T>(mapper: () => T, stores: (BasicStore<any> | IDB
       )
    })
    onUnmount(() => subscription?.unsubscribe())
+
+   useEffect(() => {
+      setValue(mapper() as any)
+   }, dependencies ?? [])
 
    return value
 }
