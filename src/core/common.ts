@@ -1,9 +1,4 @@
 export namespace CRT {
-   export enum Storage {
-      LocalStorage,
-      SessionStorage,
-   }
-
    type Config_t = {
       application: string
       dbVersion: number
@@ -19,16 +14,12 @@ export namespace CRT {
       application: "CRT",
       dbVersion: 1,
 
-      storage: Storage.LocalStorage,
+      storage: localStorage,
       storeIDMapper: (storeID) => storeID,
    }
 
    export function Clear() {
-      if (CONFIG.storage === Storage.LocalStorage) {
-         localStorage.clear()
-      } else if (CONFIG.storage === Storage.SessionStorage) {
-         sessionStorage.clear()
-      }
+      CONFIG.storage.clear()
    }
 
    export function Config(config: Partial<Config_t>) {

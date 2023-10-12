@@ -19,33 +19,22 @@ export type StorageStoreConfig_t = {
 
 namespace Storage {
    export function getItem(key: string): any {
-      if ([CRT.Storage.LocalStorage, CRT.Storage.SessionStorage].includes(CRT.CONFIG.storage)) {
-         let value: any = null
-         if (CRT.CONFIG.storage === CRT.Storage.LocalStorage) value = localStorage.getItem(key)
-         else value = sessionStorage.getItem(key)
+      const value = CRT.CONFIG.storage.getItem(key)
+      if (!value) return null
 
-         if (!value) return null
-
-         try {
-            return JSON.parse(value)
-         } catch (e) {
-            const preventRecovery = CRT.CONFIG.onJSONParseError?.()
-            if (!preventRecovery && CRT.CONFIG.selfRecovery) {
-               localStorage.removeItem(key)
-               sessionStorage.removeItem(key)
-            }
-            return null
+      try {
+         return JSON.parse(value)
+      } catch (e) {
+         const preventRecovery = CRT.CONFIG.onJSONParseError?.()
+         if (!preventRecovery && CRT.CONFIG.selfRecovery) {
+            CRT.CONFIG.storage.removeItem(key)
          }
+         return null
       }
-      return null
    }
 
    export function setItem(key: string, value: any) {
-      if (CRT.CONFIG.storage === CRT.Storage.LocalStorage) {
-         localStorage.setItem(key, JSON.stringify(value))
-      } else if (CRT.CONFIG.storage === CRT.Storage.SessionStorage) {
-         sessionStorage.setItem(key, JSON.stringify(value))
-      }
+      CRT.CONFIG.storage.setItem(key, JSON.stringify(value))
    }
 }
 
